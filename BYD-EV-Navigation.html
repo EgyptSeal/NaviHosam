@@ -1552,6 +1552,36 @@
             throw new Error('No route found');
         }
         
+        async function rerouteFromCurrentPosition() {
+            if (!lastGpsPos || !currentRoute || !routeCoordinates.length || !map) return;
+            const currentPos = [lastGpsPos.lng, lastGpsPos.lat];
+            const destination = routeCoordinates[routeCoordinates.length - 1];
+            try {
+                const newRoute = await getDirections(currentPos, destination, []);
+                currentRoute = newRoute;
+                routeCoordinates = newRoute.geometry.coordinates;
+                simulatedProgress = 0;
+                if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+                if (map.getLayer('route-layer')) map.removeLayer('route-layer');
+                if (map.getSource('route')) map.removeSource('route');
+                removeTrafficLightsLayer();
+                trafficLightsAlongRoute = [];
+                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry } });
+                addRouteLayers();
+                (async () => {
+                    try {
+                        trafficLightsAlongRoute = await fetchTrafficLightsAlongRoute(routeCoordinates);
+                        addTrafficLightsLayer(trafficLightsAlongRoute);
+                    } catch (e) { trafficLightsAlongRoute = []; }
+                })();
+                const distKm = (currentRoute.distance / 1000).toFixed(1);
+                document.getElementById('routeDistance').textContent = distKm + ' km';
+                document.getElementById('tripProgressText').textContent = `0 km / ${distKm} km`;
+                lastSpokenInstruction = '';
+                if (document.getElementById('audioGuidance')?.checked) speakGuidance('Rerouting. New route found.');
+            } catch (e) {}
+        }
+        
         function parseMapboxEvStations(data) {
             const stations = [];
             (data.features || []).forEach(f => {
@@ -1778,6 +1808,10 @@ out;`;
         }
         
         const SNAP_TO_ROUTE_THRESHOLD_KM = 0.05;
+        const OFF_ROUTE_THRESHOLD_KM = 0.08;
+        const REROUTE_COOLDOWN_MS = 15000;
+        let lastRerouteTime = 0;
+        let rerouteInProgress = false;
         function projectOntoRoute(point, routeCoords) {
             const [px, py] = Array.isArray(point) ? point : [point.lng ?? point.longitude, point.lat ?? point.latitude];
             let bestDistAlong = 0;
@@ -2175,7 +2209,12 @@ out;`;
             let idx = Math.floor(simulatedProgress * (routeCoordinates.length - 1));
             if (isRealNav && lastGpsPos) {
                 const proj = projectOntoRoute([lastGpsPos.lng, lastGpsPos.lat], routeCoordinates);
-                if (proj && proj.distKm < SNAP_TO_ROUTE_THRESHOLD_KM) {
+                if (proj && proj.distKm > OFF_ROUTE_THRESHOLD_KM && !rerouteInProgress && (Date.now() - lastRerouteTime > REROUTE_COOLDOWN_MS)) {
+                    rerouteInProgress = true;
+                    rerouteFromCurrentPosition().then(() => { rerouteInProgress = false; lastRerouteTime = Date.now(); }).catch(() => { rerouteInProgress = false; });
+                    pos = [lastGpsPos.lng, lastGpsPos.lat];
+                    idx = findNearestRouteIndex(pos, routeCoordinates);
+                } else if (proj && proj.distKm < SNAP_TO_ROUTE_THRESHOLD_KM) {
                     pos = proj.projected;
                     const totalDistKm = (currentRoute.distance || 1) / 1000;
                     if (totalDistKm > 0) idx = Math.min(Math.floor((proj.distAlong / totalDistKm) * (routeCoordinates.length - 1)), routeCoordinates.length - 1);
