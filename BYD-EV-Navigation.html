@@ -1078,6 +1078,7 @@
         let mapClickMode = null; // 'start' | 'destination' | 'stop' | null
         let fromCoordManual = null, toCoordManual = null;
         let carMarker = null;
+        let locationDotMarker = null;
         let startMarker = null;
         let endMarker = null;
         let waypointMarkers = [];
@@ -2187,10 +2188,12 @@ out;`;
         function updateNavCameraAndGuidance() {
             const navCtrlsEl = document.getElementById('mapNavControls');
             if (!isNavigating && navCtrlsEl) navCtrlsEl.classList.remove('visible');
-            // GPS-only mode: no route but real nav – follow actual GPS position like Google Maps
+            // GPS-only mode: no route but real nav – show small blue circle (scales with zoom), follow position
             if (isRealNav && lastGpsPos && (!currentRoute || !routeCoordinates.length)) {
                 const pos = [lastGpsPos.lng, lastGpsPos.lat];
                 const bearing = (lastGpsPos.heading != null && !isNaN(lastGpsPos.heading)) ? lastGpsPos.heading : map.getBearing();
+                if (carMarker) { carMarker.remove(); carMarker = null; }
+                updateLocationDotMarker(pos, map.getZoom());
                 if (isNavigating) {
                     const navCtrls = document.getElementById('mapNavControls');
                     if (navCtrls) navCtrls.classList.add('visible');
@@ -2200,11 +2203,11 @@ out;`;
                         const offsetY = getCarScreenOffsetY();
                         map.easeTo({ center: pos, bearing: bearing, pitch: p, zoom: z, duration: CAMERA_EASE_DURATION, easing: CAMERA_EASING, offset: [0, offsetY] });
                     }
-                    updateCarMarker(pos, bearing, map.getZoom(), '');
                 }
                 return;
             }
             if (!currentRoute || !routeCoordinates.length) return;
+            if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             let pos;
             let idx = Math.floor(simulatedProgress * (routeCoordinates.length - 1));
             if (isRealNav && lastGpsPos) {
@@ -2324,6 +2327,9 @@ out;`;
         const CAR_ICON_SCALE_MULT = 1.35;
         const CAR_ICON_SIZE_MIN_PX = 28;
         const CAR_ICON_SIZE_MAX_PX = 160;
+        const LOCATION_DOT_RADIUS_M = 12;
+        const LOCATION_DOT_SIZE_MIN_PX = 12;
+        const LOCATION_DOT_SIZE_MAX_PX = 80;
         window.__carIcons4Loaded = false;
         (function preloadCarIcons() {
             let n = 0;
@@ -2417,6 +2423,25 @@ out;`;
                 el.innerHTML = getNavIconHTML(selectedNavIcon, baseSize);
             }
             el.style.transform = `rotate(${bearing}deg)`;
+        }
+        
+        function updateLocationDotMarker(pos, zoom) {
+            const lat = Array.isArray(pos) ? pos[1] : (pos?.lat ?? pos?.latitude);
+            const z = zoom != null ? zoom : (map && map.getZoom && map.getZoom());
+            const mpp = metersPerPixelAt(z, lat);
+            const diameterM = LOCATION_DOT_RADIUS_M * 2;
+            const sizePx = mpp > 0 ? Math.round((diameterM / mpp)) : 24;
+            const size = Math.max(LOCATION_DOT_SIZE_MIN_PX, Math.min(LOCATION_DOT_SIZE_MAX_PX, sizePx));
+            if (!locationDotMarker) {
+                const el = document.createElement('div');
+                el.className = 'location-dot-marker';
+                el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #64b5f6, #1976d2);border:2px solid rgba(255,255,255,0.9);box-shadow:0 2px 8px rgba(0,0,0,0.4);transform-origin:center center;`;
+                locationDotMarker = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat(pos).addTo(map);
+            }
+            locationDotMarker.setLngLat(pos);
+            const el = locationDotMarker.getElement();
+            el.style.width = size + 'px';
+            el.style.height = size + 'px';
         }
         
         function getManeuverIconSVG(type, modifier) {
@@ -2782,6 +2807,7 @@ out;`;
             window.speechSynthesis?.cancel();
             currentStreetName = '';
             if (carMarker) { carMarker.remove(); carMarker = null; }
+            if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
             document.getElementById('mapNavControls').classList.remove('visible');
             if (map && currentRoute && routeCoordinates.length) {
@@ -2894,6 +2920,7 @@ out;`;
             mainContent.classList.remove('navigating');
             window.speechSynthesis?.cancel();
             if (carMarker) { carMarker.remove(); carMarker = null; }
+            if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
             document.getElementById('mapNavControls').classList.remove('visible');
             if (currentRoute && routeCoordinates.length && startMarker && endMarker) {
@@ -2935,6 +2962,7 @@ out;`;
                 lastGpsPos = null;
                 window.speechSynthesis?.cancel();
                 if (carMarker) { carMarker.remove(); carMarker = null; }
+                if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
                 document.getElementById('speedGaugesContainer').style.display = 'none';
                 if (currentRoute && routeCoordinates.length && startMarker && endMarker) {
                     startMarker.setLngLat(routeCoordinates[0]).addTo(map);
