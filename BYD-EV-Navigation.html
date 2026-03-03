@@ -368,7 +368,7 @@
         .main-content.navigating .route-inputs { display: none !important; }
         .main-content.navigating .click-mode-btns { display: none !important; }
         .main-content.navigating .stops-btns { display: none !important; }
-        .main-content.navigating .map-overlay { min-height: 100%; }
+        .main-content.navigating .map-overlay { min-height: 100%; overflow: visible; }
         .route-options {
             display: flex;
             gap: 12px;
@@ -1012,19 +1012,18 @@
                         <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
                         <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
                     </div>
-                </div>
-                
-                <div class="nav-hints-overlay">
-                    <div class="nav-instruction" id="navInstruction" style="display: none;">
-                        <div class="maneuver-icon" id="navManeuverIcon"></div>
-                        <div class="nav-instruction-text">
-                            <div class="distance" id="navDistance" dir="auto">In 500 m</div>
-                            <div class="action" id="navAction" dir="auto">Turn right</div>
+                    <div class="nav-hints-overlay">
+                        <div class="nav-instruction" id="navInstruction" style="display: none;">
+                            <div class="maneuver-icon" id="navManeuverIcon"></div>
+                            <div class="nav-instruction-text">
+                                <div class="distance" id="navDistance" dir="auto">In 500 m</div>
+                                <div class="action" id="navAction" dir="auto">Turn right</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="junction-view" id="junctionView">
-                        <div class="junction-drawing" id="junctionDrawing"></div>
-                        <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                        <div class="junction-view" id="junctionView">
+                            <div class="junction-drawing" id="junctionDrawing"></div>
+                            <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                        </div>
                     </div>
                 </div>
                 
