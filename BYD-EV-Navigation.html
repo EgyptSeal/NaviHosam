@@ -689,17 +689,26 @@
             gap: 12px;
         }
         .nav-info-box .ib-next-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            background: rgba(0,212,255,0.2);
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(145deg, rgba(0,212,255,0.45) 0%, rgba(0,150,200,0.35) 50%, rgba(0,100,160,0.4) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            box-shadow: 0 0 16px rgba(0,212,255,0.25);
+            box-shadow: 0 4px 0 rgba(0,80,120,0.5), 0 8px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.35), 0 0 20px rgba(0,212,255,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
         }
-        .nav-info-box .ib-next-icon svg { width: 28px; height: 28px; display: block; }
+        .nav-info-box .ib-next-icon svg {
+            width: 28px;
+            height: 28px;
+            display: block;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+        }
+        .ib-poi-list { display: flex; flex-direction: column; gap: 2px; }
+        .ib-poi-list .ib-poi-row { margin: 0; }
         .nav-info-box .ib-next-dist { font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); }
         .nav-info-box .ib-next-road { font-size: 0.9rem; color: var(--text-primary); margin-top: 2px; }
         .nav-info-box .ib-junction-wrap {
@@ -1249,9 +1258,9 @@
                         <div class="ib-heading">TRIP OVERVIEW</div>
                         <div class="ib-trip-row"><span class="ib-label">DISTANCE</span><span class="ib-val" id="ibDistance">-- km</span></div>
                         <div class="ib-trip-row"><span class="ib-label">ETA</span><span class="ib-val" id="ibEta">--</span></div>
-                        <div class="ib-trip-row"><span class="ib-label">DURATION</span><span class="ib-val" id="ibDuration">-- min</span></div>
-                        <div class="ib-trip-row"><span class="ib-label">FUEL</span><span class="ib-val" id="ibFuel">--%</span></div>
-                        <div class="ib-fuel-bar"><div class="ib-fuel-fill" id="ibFuelFill" style="width: 18%;"></div></div>
+                        <div class="ib-trip-row"><span class="ib-label">DURATION</span><span class="ib-val" id="ibDuration">--</span></div>
+                        <div class="ib-trip-row"><span class="ib-label">CHARGE</span><span class="ib-val" id="ibFuel">--%</span></div>
+                        <div class="ib-fuel-bar" aria-label="Charge"><div class="ib-fuel-fill" id="ibFuelFill" style="width: 18%;"></div></div>
                         <div class="ib-divider"></div>
                         <div class="ib-next" id="ibNextBlock">
                             <div class="ib-next-head">
@@ -1272,9 +1281,7 @@
                         </div>
                         <div class="ib-divider"></div>
                         <div class="ib-heading">POINTS OF INTEREST</div>
-                        <div class="ib-poi-row"><span class="ib-poi-icon">🔌</span><span class="ib-poi-name">Charging</span><span class="ib-poi-dist" id="ibPoiCharge">--</span></div>
-                        <div class="ib-poi-row"><span class="ib-poi-icon">P</span><span class="ib-poi-name">Parking</span><span class="ib-poi-dist" id="ibPoiParking">--</span></div>
-                        <div class="ib-poi-row ib-poi-highlight"><span class="ib-poi-icon">🍴</span><span class="ib-poi-name">Restaurant</span><span class="ib-poi-dist" id="ibPoiRestaurant">--</span></div>
+                        <div id="ibPoiList" class="ib-poi-list"></div>
                     </div>
                 </div>
                 <button class="stop-nav-floating" id="stopNavFloating" style="display:none;" title="Stop Navigation">⏹ Stop</button>
@@ -1578,6 +1585,41 @@
                 if (c[1] > maxLat) maxLat = c[1];
             }
             return [[minLng, minLat], [maxLng, maxLat]];
+        }
+        function formatDuration(durMin) {
+            if (durMin == null || isNaN(durMin)) return '--';
+            const h = Math.floor(durMin / 60);
+            const m = Math.round(durMin % 60);
+            if (h > 0 && m > 0) return h + ' hour' + (h !== 1 ? 's' : '') + ' and ' + m + ' min';
+            if (h > 0) return h + ' hour' + (h !== 1 ? 's' : '');
+            return m + ' min';
+        }
+        function formatTime12h(date) {
+            if (!date || !(date instanceof Date)) return '--';
+            const h = date.getHours();
+            const m = date.getMinutes();
+            const hour12 = (h % 12) || 12;
+            return hour12.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + (h < 12 ? ' AM' : ' PM');
+        }
+        function updatePoiList() {
+            const listEl = document.getElementById('ibPoiList');
+            if (!listEl) return;
+            if (!currentRoute || !routeCoordinates || routeCoordinates.length === 0) {
+                listEl.innerHTML = '<div class="ib-poi-row"><span class="ib-poi-icon">📍</span><span class="ib-poi-name">Plan a route to see POIs</span><span class="ib-poi-dist">--</span></div>';
+                return;
+            }
+            if (!chargingStations || chargingStations.length === 0) {
+                listEl.innerHTML = '<div class="ib-poi-row"><span class="ib-poi-icon">🔌</span><span class="ib-poi-name">No charging stations along route</span><span class="ib-poi-dist">--</span></div>';
+                return;
+            }
+            const sorted = [...chargingStations].sort((a, b) =>
+                distanceAlongRouteToPoint([a.lon, a.lat], routeCoordinates) - distanceAlongRouteToPoint([b.lon, b.lat], routeCoordinates));
+            const maxPoi = 5;
+            listEl.innerHTML = sorted.slice(0, maxPoi).map(s => {
+                const distKm = (distanceAlongRouteToPoint([s.lon, s.lat], routeCoordinates) / 1000).toFixed(1);
+                const name = (s.name || 'Charging station').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                return `<div class="ib-poi-row"><span class="ib-poi-icon">🔌</span><span class="ib-poi-name" title="${name}">${name.length > 22 ? name.slice(0, 22) + '…' : name}</span><span class="ib-poi-dist">${distKm} km</span></div>`;
+            }).join('');
         }
         
         // Update map style based on time (6am-6pm = day)
@@ -2640,9 +2682,10 @@ out;`;
             map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } });
             addRouteLayersPreview();
             const coords = route.geometry.coordinates;
-            const bounds = getRouteBounds(coords);
+            const allPoints = fromCoord && toCoord ? [fromCoord, ...coords, toCoord] : coords;
+            const bounds = getRouteBounds(allPoints);
             if (bounds) {
-                map.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 700, linear: true });
+                map.fitBounds(bounds, { padding: 120, maxZoom: 11, duration: 700, linear: true });
             }
             map.easeTo({ pitch: 0, duration: 500 });
         }
@@ -2714,14 +2757,8 @@ out;`;
                             chargingPinMarkers.push(new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([s.lon, s.lat]).addTo(map));
                         });
                         renderChargingStations();
-                        const ibPoiCharge = document.getElementById('ibPoiCharge');
-                        if (ibPoiCharge && chargingStations.length > 0) {
-                            const sorted = [...chargingStations].sort((a, b) =>
-                                distanceAlongRouteToPoint([a.lon, a.lat], routeCoordinates) - distanceAlongRouteToPoint([b.lon, b.lat], routeCoordinates));
-                            const distKmFirst = (distanceAlongRouteToPoint([sorted[0].lon, sorted[0].lat], routeCoordinates) / 1000).toFixed(1);
-                            ibPoiCharge.textContent = distKmFirst + ' km';
-                        }
-                    } catch (e) { chargingStations = []; }
+                        updatePoiList();
+                    } catch (e) { chargingStations = []; updatePoiList(); }
                 })();
                 
                 const realistic = calculateRealisticRange();
@@ -2757,7 +2794,7 @@ out;`;
                 document.getElementById('tripProgressText').textContent = `0 km / ${distKm} km`;
                 const hours = Math.floor(durMin / 60);
                 const mins = durMin % 60;
-                document.getElementById('tripTimeText').textContent = hours > 0 ? `${hours} h ${mins} min` : `${durMin} min`;
+                document.getElementById('tripTimeText').textContent = formatDuration(durMin);
                 document.getElementById('tripProgressFill').style.width = '0%';
                 document.getElementById('tripProgressCar').style.left = '0%';
                 
@@ -2797,18 +2834,18 @@ out;`;
                 document.getElementById('rangeSufficient').style.color = sufficient ? 'var(--accent-green)' : 'var(--accent-orange)';
                 
                 const etaDate = new Date(Date.now() + durMin * 60000);
-                const etaStr = etaDate.getHours().toString().padStart(2,'0') + ':' + etaDate.getMinutes().toString().padStart(2,'0');
                 const ibDistance = document.getElementById('ibDistance');
                 const ibEta = document.getElementById('ibEta');
                 const ibDuration = document.getElementById('ibDuration');
                 const ibFuel = document.getElementById('ibFuel');
                 const ibFuelFill = document.getElementById('ibFuelFill');
                 if (ibDistance) ibDistance.textContent = distKm + ' km';
-                if (ibEta) ibEta.textContent = etaStr;
-                if (ibDuration) ibDuration.textContent = durMin + ' min';
+                if (ibEta) ibEta.textContent = formatTime12h(etaDate);
+                if (ibDuration) ibDuration.textContent = formatDuration(durMin);
                 if (ibFuel) ibFuel.textContent = endChargeAtArrival + '%';
                 if (ibFuelFill) ibFuelFill.style.width = Math.max(0, Math.min(100, endChargeAtArrival)) + '%';
                 
+                updatePoiList();
                 update5PctMarker(parseFloat(distKm), simulatedCharge, batteryUsedPct, pctPerKm);
                 
                 // Do not show nav instruction / junction overlay until user starts navigation or demo
@@ -3489,7 +3526,7 @@ out;`;
         setInterval(() => {
             const d = new Date();
             const ibTime = document.getElementById('ibTime');
-            if (ibTime) ibTime.textContent = (d.getHours() % 12 || 12) + ':' + d.getMinutes().toString().padStart(2, '0') + (d.getHours() < 12 ? ' AM' : ' PM');
+            if (ibTime) ibTime.textContent = formatTime12h(d);
             const ibTemp = document.getElementById('ibTemp');
             if (ibTemp) ibTemp.textContent = (document.getElementById('tempSlicer')?.value || 20) + '°C';
             const ibCond = document.getElementById('ibConditions');
