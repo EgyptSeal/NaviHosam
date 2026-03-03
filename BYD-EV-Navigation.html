@@ -435,45 +435,93 @@
             gap: 10px;
         }
         .nav-hints-overlay.visible { display: flex; }
+        /* Nav instruction + junction: day = light, night = dark to match map */
         .nav-instruction {
             max-width: 100%;
-            background: #fff;
-            border-radius: 12px;
-            padding: 14px 18px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.08);
+            border-radius: 10px;
+            padding: 10px 14px;
             display: flex;
             align-items: center;
-            gap: 16px;
-            border: 1px solid rgba(0,0,0,0.06);
+            gap: 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
         }
+        body[data-map-theme="day"] .nav-instruction {
+            background: #fff;
+            border-color: rgba(0,0,0,0.08);
+            color: #1a1a1a;
+        }
+        body[data-map-theme="night"] .nav-instruction,
+        body:not([data-map-theme]) .nav-instruction {
+            background: rgba(18,26,42,0.96);
+            border-color: var(--border-glow);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        body[data-map-theme="day"] .nav-instruction .distance { color: #1a73e8; }
+        body[data-map-theme="day"] .nav-instruction .action { color: #202124; }
+        body[data-map-theme="night"] .nav-instruction .distance,
+        body:not([data-map-theme]) .nav-instruction .distance { color: var(--accent-blue); }
+        body[data-map-theme="night"] .nav-instruction .action,
+        body:not([data-map-theme]) .nav-instruction .action { color: var(--text-primary); }
         .nav-instruction .maneuver-icon {
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #4285F4;
             border-radius: 50%;
+            transition: background 0.2s;
         }
-        .nav-instruction .maneuver-icon svg { width: 28px; height: 28px; display: block; }
-        .nav-instruction .distance { color: #4285F4; font-weight: 700; font-size: 1rem; letter-spacing: 0.2px; }
-        .nav-instruction .action { font-size: 1.05rem; font-weight: 600; margin-top: 2px; color: #202124; line-height: 1.35; }
+        body[data-map-theme="day"] .nav-instruction .maneuver-icon { background: #1a73e8; }
+        body[data-map-theme="night"] .nav-instruction .maneuver-icon,
+        body:not([data-map-theme]) .nav-instruction .maneuver-icon { background: var(--accent-blue); }
+        .nav-instruction .maneuver-icon svg { width: 22px; height: 22px; display: block; }
+        .nav-instruction .distance { font-weight: 700; font-size: 0.9rem; letter-spacing: 0.2px; }
+        .nav-instruction .action { font-size: 0.95rem; font-weight: 600; margin-top: 1px; line-height: 1.3; }
         
         .junction-view {
             display: none;
             max-width: 100%;
-            background: linear-gradient(145deg, rgba(18,26,42,0.97), rgba(10,14,23,0.98));
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border-glow);
-            border-radius: 14px;
-            padding: 18px 22px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+            border-radius: 10px;
+            padding: 10px 14px;
+            border: 1px solid rgba(0,0,0,0.08);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: background 0.2s, border-color 0.2s;
+        }
+        body[data-map-theme="day"] .junction-view {
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+        }
+        body[data-map-theme="night"] .junction-view,
+        body:not([data-map-theme]) .junction-view {
+            background: rgba(18,26,42,0.95);
+            border-color: var(--border-glow);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
         .junction-view.visible { display: block; }
-        .junction-view .junction-drawing { width: 268px; height: 188px; margin: 0 auto 12px; display: block; }
-        .junction-view .junction-label { font-size: 1.12rem; font-weight: 600; color: var(--accent-blue); text-align: center; letter-spacing: 0.3px; text-shadow: 0 0 20px rgba(0,212,255,0.35); }
+        .junction-view .junction-drawing { width: 160px; height: 112px; margin: 0 auto 8px; display: block; }
+        .junction-view .junction-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.2px;
+            transition: color 0.2s;
+        }
+        body[data-map-theme="day"] .junction-view .junction-label { color: #1a73e8; }
+        body[data-map-theme="night"] .junction-view .junction-label,
+        body:not([data-map-theme]) .junction-view .junction-label { color: var(--accent-blue); }
+        .junction-view .junction-drawing svg { display: block; width: 100%; height: 100%; }
+        .junction-view .j-road { stroke: #94a3b8; fill: none; }
+        .junction-view .j-highlight { stroke: currentColor; fill: currentColor; color: inherit; }
+        body[data-map-theme="day"] .junction-view .junction-drawing { color: #1a73e8; }
+        body[data-map-theme="day"] .junction-view .j-road { stroke: #94a3b8; }
+        body[data-map-theme="night"] .junction-view .junction-drawing,
+        body:not([data-map-theme]) .junction-view .junction-drawing { color: var(--accent-blue); }
+        body[data-map-theme="night"] .junction-view .j-road,
+        body:not([data-map-theme]) .junction-view .j-road { stroke: #475569; }
         
         /* Map nav controls: zoom, tilt, recenter - right middle */
         .map-nav-controls {
@@ -1229,6 +1277,7 @@
             if (!map) return;
             const hour = new Date().getHours();
             let useNight = mapStyleMode === 'night' || (mapStyleMode === 'auto' && (hour < 6 || hour >= 18));
+            document.body.setAttribute('data-map-theme', useNight ? 'night' : 'day');
             const newStyle = useNight ? MAP_STYLE_NIGHT : MAP_STYLE_DAY;
             if (currentMapStyle === newStyle) return;
             currentMapStyle = newStyle;
@@ -1353,6 +1402,7 @@
         const initHour = new Date().getHours();
         const initNight = initHour < 6 || initHour >= 18;
         currentMapStyle = initNight ? MAP_STYLE_NIGHT : MAP_STYLE_DAY;
+        document.body.setAttribute('data-map-theme', initNight ? 'night' : 'day');
         map = new mapboxgl.Map({
             container: 'map',
             style: currentMapStyle,
@@ -2657,35 +2707,39 @@ out;`;
             el.style.height = size + 'px';
         }
         
+        // Google Maps / Apple Maps / Waze style: clean, high-quality maneuver icons (white on colored circle)
         function getManeuverIconSVG(type, modifier) {
             const W = '#ffffff';
             const mod = (modifier || '').toLowerCase().replace(/-/g, ' ');
-            const arrowRight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M16 14 L32 24 L16 34 L16 28 L26 24 L16 20 Z" fill="${W}"/></svg>`;
-            const arrowLeft = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M32 14 L16 24 L32 34 L32 28 L22 24 L32 20 Z" fill="${W}"/></svg>`;
-            const arrowStraight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M22 34 L24 12 L26 34 L24 30 Z" fill="${W}"/></svg>`;
-            const arrowSlightRight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 12 L36 24 L28 24 L28 36 L20 36 L20 24 L12 24 Z" fill="${W}"/></svg>`;
-            const arrowSlightLeft = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 12 L12 24 L20 24 L20 36 L28 36 L28 24 L36 24 Z" fill="${W}"/></svg>`;
-            const arrowSharpRight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 12 L24 24 L12 36 L18 36 L24 28 L30 36 L36 36 Z" fill="${W}"/></svg>`;
-            const arrowSharpLeft = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 12 L24 24 L36 36 L30 36 L24 28 L18 36 L12 36 Z" fill="${W}"/></svg>`;
-            if (type === 'arrive') return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="10" fill="none" stroke="${W}" stroke-width="3"/><circle cx="24" cy="24" r="5" fill="${W}"/></svg>`;
-            if (type === 'depart' || type === 'merge') return arrowStraight;
-            if (type === 'roundabout' || type === 'rotary') return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path d="M24 38 A14 14 0 0 1 38 24" fill="none" stroke="${W}" stroke-width="4" stroke-linecap="round"/><path d="M24 38 L24 26 M36 22 L38 24 L36 26" fill="none" stroke="${W}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            const vb = '0 0 24 24';
+            const straight = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M11 4v12l2-2 2 2V4l-2 2-2-2z" fill="${W}"/></svg>`;
+            const right = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M6 6v12l6-6-6-6z" fill="${W}"/></svg>`;
+            const left = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M18 6v12l-6-6 6-6z" fill="${W}"/></svg>`;
+            const slightRight = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v4c2 0 4 1.2 5 3l-1.5.6c-.5-1.2-1.8-1.9-3-1.9V5l-1 1.5 1 1.5z" fill="${W}"/></svg>`;
+            const slightLeft = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v4c-2 0-4 1.2-5 3l1.5.6c.5-1.2 1.8-1.9 3-1.9V5l1 1.5-1 1.5z" fill="${W}"/></svg>`;
+            const sharpRight = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M8 5v9l7-4.5L8 5z" fill="${W}"/></svg>`;
+            const sharpLeft = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><path d="M16 5v9l-7-4.5L16 5z" fill="${W}"/></svg>`;
+            const arrive = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="6" fill="none" stroke="${W}" stroke-width="2.5"/><circle cx="12" cy="12" r="2.5" fill="${W}"/></svg>`;
+            const roundabout = `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" fill="none" stroke="${W}" stroke-width="2"/><path d="M12 7v3l2 2" fill="none" stroke="${W}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+            if (type === 'arrive') return arrive;
+            if (type === 'depart' || type === 'merge') return straight;
+            if (type === 'roundabout' || type === 'rotary') return roundabout;
             if (type === 'fork' || type === 'turn') {
-                if (mod.includes('sharp') && mod.includes('right')) return arrowSharpRight;
-                if (mod.includes('sharp') && mod.includes('left')) return arrowSharpLeft;
-                if (mod.includes('slight') && mod.includes('right')) return arrowSlightRight;
-                if (mod.includes('slight') && mod.includes('left')) return arrowSlightLeft;
-                if (mod.includes('right')) return arrowRight;
-                if (mod.includes('left')) return arrowLeft;
-                return arrowStraight;
+                if (mod.includes('sharp') && mod.includes('right')) return sharpRight;
+                if (mod.includes('sharp') && mod.includes('left')) return sharpLeft;
+                if (mod.includes('slight') && mod.includes('right')) return slightRight;
+                if (mod.includes('slight') && mod.includes('left')) return slightLeft;
+                if (mod.includes('right')) return right;
+                if (mod.includes('left')) return left;
+                return straight;
             }
-            if (mod.includes('sharp') && mod.includes('right')) return arrowSharpRight;
-            if (mod.includes('sharp') && mod.includes('left')) return arrowSharpLeft;
-            if (mod.includes('slight') && mod.includes('right')) return arrowSlightRight;
-            if (mod.includes('slight') && mod.includes('left')) return arrowSlightLeft;
-            if (mod.includes('right')) return arrowRight;
-            if (mod.includes('left')) return arrowLeft;
-            return arrowStraight;
+            if (mod.includes('sharp') && mod.includes('right')) return sharpRight;
+            if (mod.includes('sharp') && mod.includes('left')) return sharpLeft;
+            if (mod.includes('slight') && mod.includes('right')) return slightRight;
+            if (mod.includes('slight') && mod.includes('left')) return slightLeft;
+            if (mod.includes('right')) return right;
+            if (mod.includes('left')) return left;
+            return straight;
         }
         
         function getJunctionViewSVG(type, modifier, instruction) {
@@ -2696,21 +2750,23 @@ out;`;
             const takeUnder = /take.*under|road under|go under|exit.*under|ramp under/.test(inst);
             const underRight = /right|ramp.*right|take the right/.test(inst) && takeUnder;
             const underLeft = /left|ramp.*left|take the left/.test(inst) && takeUnder;
-            if (type === 'arrive') return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="70" r="36" fill="none" stroke="#00ff88" stroke-width="8"/><circle cx="100" cy="70" r="14" fill="#00ff88"/></svg>', label: 'Arrive at destination' };
+            if (type === 'arrive') return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="70" r="32" fill="none" class="j-highlight" stroke="currentColor" stroke-width="6"/><circle cx="100" cy="70" r="12" class="j-highlight" fill="currentColor"/></svg>', label: 'Arrive at destination' };
             if (isBridge && (stayBridge || takeUnder)) {
                 const highlightTop = stayBridge;
-                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M20 50 L180 50" stroke="#4a5568" stroke-width="12" fill="none"/><path d="M20 90 L180 90" stroke="#4a5568" stroke-width="12" fill="none"/><path d="M20 50 L20 90 M180 50 L180 90" stroke="#2d3748" stroke-width="4" fill="none"/>' + (highlightTop ? '<path d="M20 50 L180 50" stroke="#00d4ff" stroke-width="14" fill="none"/><path d="M100 35 L100 55" stroke="#00d4ff" stroke-width="6"/><circle cx="100" cy="45" r="8" fill="#00d4ff"/>' : '') + (!highlightTop ? '<path d="M20 90 L180 90" stroke="#00d4ff" stroke-width="14" fill="none"/><path d="M100 75 L100 105" stroke="#00d4ff" stroke-width="6"/><circle cx="100" cy="90" r="8" fill="#00d4ff"/>' : '') + '<text x="100" y="25" text-anchor="middle" fill="#8b9dc3" font-size="11">Bridge</text><text x="100" y="125" text-anchor="middle" fill="#8b9dc3" font-size="11">Road under</text></svg>', label: stayBridge ? 'Stay on the bridge' : (underRight ? 'Take the road under (right)' : underLeft ? 'Take the road under (left)' : 'Take the road under') };
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M20 50 L180 50" class="j-road" stroke-width="10" fill="none"/><path d="M20 90 L180 90" class="j-road" stroke-width="10" fill="none"/><path d="M20 50 L20 90 M180 50 L180 90" class="j-road" stroke-width="3" fill="none"/>' + (highlightTop ? '<path d="M20 50 L180 50" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none"/><circle cx="100" cy="45" r="6" class="j-highlight" fill="currentColor"/>' : '<path d="M20 90 L180 90" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none"/><circle cx="100" cy="95" r="6" class="j-highlight" fill="currentColor"/>') + '</svg>', label: stayBridge ? 'Stay on the bridge' : (underRight ? 'Take the road under (right)' : underLeft ? 'Take the road under (left)' : 'Take the road under') };
             }
             if (type === 'fork' || mod.includes('keep')) {
                 const keepRight = mod.includes('right') || /keep right|take the right/.test(inst);
                 const keepLeft = mod.includes('left') || /keep left|take the left/.test(inst);
-                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 130 L100 60" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M100 60 L40 20" stroke="' + (keepLeft ? '#00d4ff' : '#4a5568') + '" stroke-width="' + (keepLeft ? 14 : 10) + '" fill="none"/><path d="M100 60 L160 20" stroke="' + (keepRight ? '#00d4ff' : '#4a5568') + '" stroke-width="' + (keepRight ? 14 : 10) + '" fill="none"/><circle cx="100" cy="60" r="8" fill="#00d4ff"/>' + (keepLeft ? '<circle cx="38" cy="22" r="10" fill="#00d4ff" opacity="0.9"/>' : '') + (keepRight ? '<circle cx="162" cy="22" r="10" fill="#00d4ff" opacity="0.9"/>' : '') + '</svg>', label: keepRight ? 'Keep right' : keepLeft ? 'Keep left' : (mod.includes('right') ? 'Keep right' : 'Keep left') };
+                const leftAttr = keepLeft ? 'class="j-highlight" stroke="currentColor"' : 'class="j-road"';
+                const rightAttr = keepRight ? 'class="j-highlight" stroke="currentColor"' : 'class="j-road"';
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 125 L100 55" ' + leftAttr + ' stroke-width="' + (keepLeft ? 12 : 10) + '" fill="none"/><path d="M100 55 L45 18" ' + rightAttr + ' stroke-width="' + (keepRight ? 12 : 10) + '" fill="none"/><path d="M100 55 L155 18" ' + rightAttr + ' stroke-width="' + (keepRight ? 12 : 10) + '" fill="none"/><circle cx="100" cy="55" r="6" class="j-highlight" fill="currentColor"/>' + (keepLeft ? '<circle cx="42" cy="20" r="6" class="j-highlight" fill="currentColor"/>' : '') + (keepRight ? '<circle cx="158" cy="20" r="6" class="j-highlight" fill="currentColor"/>' : '') + '</svg>', label: keepRight ? 'Keep right' : keepLeft ? 'Keep left' : (mod.includes('right') ? 'Keep right' : 'Keep left') };
             }
             if (type === 'merge') {
-                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M30 100 L90 50" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M170 100 L110 50" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M100 50 L100 20" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: mod.includes('right') ? 'Merge right' : 'Merge left' };
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M35 98 L88 52" class="j-road" stroke-width="8" fill="none"/><path d="M165 98 L112 52" class="j-road" stroke-width="8" fill="none"/><path d="M100 52 L100 22" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none"/><circle cx="100" cy="52" r="8" class="j-highlight" fill="currentColor"/></svg>', label: mod.includes('right') ? 'Merge right' : 'Merge left' };
             }
             if (type === 'roundabout' || type === 'rotary') {
-                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><defs><filter id="rb-f" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="2" dy="2"/><feFlood flood-color="#000" flood-opacity="0.4"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="rb-road" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#546e7a"/><stop offset="40%" stop-color="#37474f"/><stop offset="100%" stop-color="#263238"/></linearGradient><linearGradient id="rb-arrow" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7ec8f4"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><circle cx="100" cy="70" r="52" fill="none" stroke="url(#rb-road)" stroke-width="18" filter="url(#rb-f)" opacity="0.95"/><circle cx="100" cy="70" r="32" fill="none" stroke="url(#rb-road)" stroke-width="6" filter="url(#rb-f)"/><path d="M100 118 L100 95 A 28 28 0 0 1 128 70 L155 58" stroke="url(#rb-arrow)" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rb-f)"/><path d="M150 52 L158 58 L150 64" stroke="url(#rb-arrow)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>', label: 'Enter roundabout' };
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="70" r="48" class="j-road" stroke-width="14" fill="none"/><circle cx="100" cy="70" r="28" class="j-road" stroke-width="4" fill="none"/><path d="M100 98 L100 82 A 24 24 0 0 1 120 72 L142 64" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M138 58 L144 64 L138 70" class="j-highlight" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/></svg>', label: 'Enter roundabout' };
             }
             const slightRight = mod.includes('slight') && mod.includes('right');
             const slightLeft = mod.includes('slight') && mod.includes('left');
@@ -2718,13 +2774,13 @@ out;`;
             const sharpLeft = mod.includes('sharp') && mod.includes('left');
             const turnRight = mod.includes('right') && !mod.includes('left') && !mod.includes('slight') && !mod.includes('sharp');
             const turnLeft = mod.includes('left') && !mod.includes('right') && !mod.includes('slight') && !mod.includes('sharp');
-            if (sharpRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 120 L100 70 L160 30" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="70" r="12" fill="#00d4ff"/></svg>', label: 'Sharp right' };
-            if (sharpLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 120 L100 70 L40 30" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="70" r="12" fill="#00d4ff"/></svg>', label: 'Sharp left' };
-            if (turnRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M80 120 L80 40 L160 40" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="80" cy="40" r="12" fill="#00d4ff"/></svg>', label: 'Turn right' };
-            if (turnLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M120 120 L120 40 L40 40" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="120" cy="40" r="12" fill="#00d4ff"/></svg>', label: 'Turn left' };
-            if (slightRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 50 Q100 30 130 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: 'Slight right' };
-            if (slightLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 50 Q100 30 70 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: 'Slight left' };
-            return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="70" r="10" fill="#00d4ff"/></svg>', label: 'Continue straight' };
+            if (sharpRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 115 L100 68 L152 28" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="68" r="8" class="j-highlight" fill="currentColor"/></svg>', label: 'Sharp right' };
+            if (sharpLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 115 L100 68 L48 28" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="68" r="8" class="j-highlight" fill="currentColor"/></svg>', label: 'Sharp left' };
+            if (turnRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M85 115 L85 38 L158 38" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="85" cy="38" r="8" class="j-highlight" fill="currentColor"/></svg>', label: 'Turn right' };
+            if (turnLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M115 115 L115 38 L42 38" class="j-highlight" stroke="currentColor" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="115" cy="38" r="8" class="j-highlight" fill="currentColor"/></svg>', label: 'Turn left' };
+            if (slightRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 108 L100 52 Q100 32 124 32" class="j-highlight" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="100" cy="52" r="6" class="j-highlight" fill="currentColor"/></svg>', label: 'Slight right' };
+            if (slightLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 108 L100 52 Q100 32 76 32" class="j-highlight" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="100" cy="52" r="6" class="j-highlight" fill="currentColor"/></svg>', label: 'Slight left' };
+            return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 108 L100 32" class="j-highlight" stroke="currentColor" stroke-width="10" fill="none" stroke-linecap="round"/><circle cx="100" cy="70" r="6" class="j-highlight" fill="currentColor"/></svg>', label: 'Continue straight' };
         }
         
         function getBearing(from, to) {
