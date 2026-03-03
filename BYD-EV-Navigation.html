@@ -937,7 +937,7 @@
                             <div class="search-dropdown" id="fromDropdown"></div>
                         </div>
                         <div class="search-wrapper">
-                            <input type="text" class="route-input" id="toInput" placeholder="To: Enter destination" autocomplete="off" dir="auto">
+                            <input type="text" class="route-input" id="toInput" placeholder="To: Enter destination (e.g. Dandy Mega Mall)" autocomplete="off" dir="auto">
                             <button type="button" class="current-loc-btn" id="toCurrentLocBtn" title="Set destination to current location address">📍</button>
                             <div class="search-dropdown" id="toDropdown"></div>
                         </div>
@@ -1060,7 +1060,7 @@
     <script>
         // Configuration
         const MAPBOX_TOKEN = 'pk.eyJ1IjoiaG9zc2FtaGVnYXppODUiLCJhIjoiY21tN3YxMGFtMHJqcTJwcjFjejMxM2RzZCJ9.vpxr16H3Rj31KkVQ6l3kFw';
-        // Optional: set to your Google API key (Places API + Geocoding API) for Google Maps-style place search. Leave empty to use Mapbox only.
+        // Optional: set to your Google API key (Places API) for Google Maps-style search. Finds malls, businesses (e.g. Dandy Mega Mall) that Mapbox often misses. Leave empty to use Mapbox only.
         const GOOGLE_PLACES_API_KEY = '';
         const MAP_STYLE_DAY = 'mapbox://styles/hossamhegazi85/cmm6weaem003b01ryhf3p4bcp';
         const MAP_STYLE_NIGHT = 'mapbox://styles/hossamhegazi85/cmm7v9r6q003h01qy02y80t01';
@@ -1449,21 +1449,24 @@
             if (km >= 1) return km.toFixed(1) + ' km';
             return Math.round(km * 1000) + ' m';
         }
-        async function geocodeOne(query, country, limit) {
+        async function geocodeOne(query, country, limit, useTypes) {
             const proximity = getProximityForSearch();
-            const types = 'place,poi,address';
-            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=${limit || 10}&proximity=${proximity}&types=${types}` + (country ? `&country=${country}` : '');
+            const types = (useTypes !== false) ? 'place,poi,address' : '';
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=${limit || 10}&proximity=${proximity}` + (types ? `&types=${types}` : '') + (country ? `&country=${country}` : '');
             const res = await fetch(url);
             const data = await res.json();
             return data.features || [];
         }
         async function geocode(query) {
-            let features = await geocodeOne(query, GEOCODER_COUNTRY, 10);
+            let features = await geocodeOne(query, GEOCODER_COUNTRY, 10, true);
             if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
-                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 10);
+                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 10, true);
             }
             if (features.length === 0) {
-                features = await geocodeOne(query, '', 10);
+                features = await geocodeOne(query, GEOCODER_COUNTRY, 10, false);
+            }
+            if (features.length === 0) {
+                features = await geocodeOne(query, '', 10, true);
                 if (features.length > 0) {
                     const inEgypt = features.filter(f => (f.context && f.context.find(c => (c.id || '').startsWith('country'))?.text === 'Egypt') || (f.place_type && f.place_type.includes('country') && f.text === 'Egypt'));
                     if (inEgypt.length) features = inEgypt;
@@ -1515,7 +1518,7 @@
             });
         }
         
-        // Geocode autocomplete – use Google if key set, else Mapbox with Egypt bias and POI types
+        // Geocode autocomplete – use Google if key set (finds malls, businesses like Dandy Mega Mall); else Mapbox with fallbacks
         let geocodeDebounce;
         async function geocodeAutocomplete(query, callback) {
             if (!query || query.length < 2) { callback([]); return; }
@@ -1525,12 +1528,19 @@
                 callback(features);
                 return;
             }
-            let features = await geocodeOne(query, GEOCODER_COUNTRY, 12);
+            // Mapbox: try with place,poi,address first, then without type filter to catch more POIs (malls, etc.)
+            let features = await geocodeOne(query, GEOCODER_COUNTRY, 15, true);
             if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
-                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 12);
+                features = await geocodeOne((query + ' Egypt').trim(), GEOCODER_COUNTRY, 15, true);
+            }
+            if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
+                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 15, true);
             }
             if (features.length === 0) {
-                features = await geocodeOne(query, '', 12);
+                features = await geocodeOne(query, GEOCODER_COUNTRY, 15, false);
+            }
+            if (features.length === 0) {
+                features = await geocodeOne(query, '', 15, false);
                 const inEgypt = features.filter(f => {
                     const ctx = f.context && f.context.find(c => (c.id || '').startsWith('country'));
                     return ctx && ctx.text === 'Egypt';
