@@ -299,6 +299,7 @@
         .map-overlay {
             position: absolute;
             top: 0;
+            contain: layout paint;
             left: 0;
             right: 0;
             padding: 72px 20px 16px;
@@ -400,6 +401,7 @@
         .speed-display {
             width: 80px;
             height: 80px;
+            contain: layout paint;
             background: rgba(18, 26, 42, 0.95);
             border: 3px solid var(--accent-blue);
             border-radius: 50%;
@@ -433,6 +435,7 @@
             display: none;
             flex-direction: column;
             gap: 10px;
+            contain: layout paint;
         }
         .nav-hints-overlay.visible { display: flex; }
         /* Nav instruction + junction: day = light, night = dark to match map */
@@ -2417,6 +2420,7 @@ out;`;
         
         // Navigation mode: locked start camera, then adaptive by road/speed
         let lastSpokenInstruction = '';
+        let lastNavStepKey = '';
         let lastDemoTime = 0;
         let currentStepIndex = 0;
         let currentStreetName = '';
@@ -2546,24 +2550,28 @@ out;`;
                             const distM = Math.round((distToNext + stepDist - doneDist) * 1000);
                             junctionShownThisStep = (distM < 400 && distM >= 0 && step.maneuver?.type !== 'depart');
                             const msg = (distM >= 1000 ? (distM/1000).toFixed(1) + ' kilometers' : distM + ' meters') + ', ' + (step.maneuver?.instruction || 'Continue');
-                            document.getElementById('navDistance').textContent = distM >= 1000 ? 'In ' + (distM/1000).toFixed(1) + ' km' : 'In ' + distM + ' m';
-                            document.getElementById('navAction').textContent = step.maneuver?.instruction || 'Continue';
-                            const mIcon = document.getElementById('navManeuverIcon');
-                            if (mIcon) mIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
-                            document.getElementById('navInstruction').style.display = 'flex';
-                            const junctionView = document.getElementById('junctionView');
-                            const junctionDrawing = document.getElementById('junctionDrawing');
-                            const junctionLabel = document.getElementById('junctionLabel');
-                            if (junctionView && junctionDrawing && junctionLabel) {
-                                if (junctionShownThisStep) {
-                                    const j = getJunctionViewSVG(step.maneuver?.type, step.maneuver?.modifier, step.maneuver?.instruction);
-                                    junctionDrawing.innerHTML = j.svg;
-                                    junctionLabel.textContent = j.label;
-                                    junctionView.classList.add('visible');
-                                    junctionView.style.display = 'block';
-                                } else {
-                                    junctionView.classList.remove('visible');
-                                    junctionView.style.display = 'none';
+                            const navStepKey = i + '-' + j + '-' + (junctionShownThisStep ? 1 : 0) + '-' + Math.floor(distM / 25);
+                            if (navStepKey !== lastNavStepKey) {
+                                lastNavStepKey = navStepKey;
+                                document.getElementById('navDistance').textContent = distM >= 1000 ? 'In ' + (distM/1000).toFixed(1) + ' km' : 'In ' + distM + ' m';
+                                document.getElementById('navAction').textContent = step.maneuver?.instruction || 'Continue';
+                                const mIcon = document.getElementById('navManeuverIcon');
+                                if (mIcon) mIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
+                                document.getElementById('navInstruction').style.display = 'flex';
+                                const junctionView = document.getElementById('junctionView');
+                                const junctionDrawing = document.getElementById('junctionDrawing');
+                                const junctionLabel = document.getElementById('junctionLabel');
+                                if (junctionView && junctionDrawing && junctionLabel) {
+                                    if (junctionShownThisStep) {
+                                        const j = getJunctionViewSVG(step.maneuver?.type, step.maneuver?.modifier, step.maneuver?.instruction);
+                                        junctionDrawing.innerHTML = j.svg;
+                                        junctionLabel.textContent = j.label;
+                                        junctionView.classList.add('visible');
+                                        junctionView.style.display = 'block';
+                                    } else {
+                                        junctionView.classList.remove('visible');
+                                        junctionView.style.display = 'none';
+                                    }
                                 }
                             }
                             if (document.getElementById('audioGuidance')?.checked && msg !== lastSpokenInstruction && distM < 600) {
@@ -2577,6 +2585,7 @@ out;`;
                     }
                 }
                 if (!junctionShownThisStep) {
+                    if (lastNavStepKey !== '') { lastNavStepKey = ''; }
                     const jv = document.getElementById('junctionView');
                     if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
                 }
@@ -2584,6 +2593,7 @@ out;`;
             
         }
         
+        let lastRenderedProgressCarIcon = null;
         let _navIconId = 0;
         const CAR_ICON_4_URLS = { 'car-black': './assets/car-black.png', 'car-blue': './assets/car-blue.png', 'car-white': './assets/car-white.png', 'car-suv-white': './assets/car-suv-white.png' };
         const REAL_CAR_LENGTH_M = 4.5;
@@ -2880,6 +2890,7 @@ out;`;
         
         // Update loop: demo sim or real GPS
         function updateDriving() {
+            if (!currentRoute && !(isRealNav && lastGpsPos && isNavigating)) return;
             // GPS-only: real nav with no route – still follow position and update UI
             if (!currentRoute) {
                 if (isRealNav && lastGpsPos && isNavigating) {
@@ -2932,7 +2943,10 @@ out;`;
             document.getElementById('tripProgressFill').style.width = (simulatedProgress * 100) + '%';
             document.getElementById('tripProgressCar').style.left = (simulatedProgress * 100) + '%';
             const progCar = document.getElementById('tripProgressCar');
-            progCar.innerHTML = getNavIconHTML(selectedNavIcon, 36);
+            if (lastRenderedProgressCarIcon !== selectedNavIcon) {
+                lastRenderedProgressCarIcon = selectedNavIcon;
+                progCar.innerHTML = getNavIconHTML(selectedNavIcon, 36);
+            }
             document.getElementById('tripProgressText').textContent = `${doneDist.toFixed(1)} km / ${totalDist.toFixed(1)} km`;
             
             const realistic = calculateRealisticRange();
@@ -2997,7 +3011,7 @@ out;`;
                 const t = (Date.now() / 600) % (2 * Math.PI);
                 map.setPaintProperty('route-layer-glow', 'line-opacity', 0.35 + 0.25 * (Math.sin(t) + 1) / 2);
             }
-        }, 80);
+        }, 150);
         
         document.getElementById('planRouteBtn').addEventListener('click', planRoute);
         document.getElementById('fromCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('fromInput'));
@@ -3067,6 +3081,7 @@ out;`;
             isDemoMode = false;
             isNavigating = false;
             isRealNav = false;
+            lastNavStepKey = '';
             if (gpsWatchId) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
             document.getElementById('runDemoBtn').disabled = false;
             document.getElementById('runDemoBtn').style.display = 'inline-block';
@@ -3191,6 +3206,7 @@ out;`;
         document.getElementById('stopSimBtn').addEventListener('click', () => {
             isDemoMode = false;
             isNavigating = false;
+            lastNavStepKey = '';
             document.getElementById('runDemoBtn').disabled = false;
             document.getElementById('runDemoBtn').style.display = 'inline-block';
             document.getElementById('stopSimBtn').disabled = true;
@@ -3280,6 +3296,7 @@ out;`;
             div.innerHTML = `<span class="icon-preview">${getNavIconSVG(key, 32)}</span><span>${ICON_LABELS[key] || key}</span>`;
             div.addEventListener('click', () => {
                 selectedNavIcon = key;
+                lastRenderedProgressCarIcon = key;
                 iconOptionsContainer.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
                 div.classList.add('selected');
                 document.getElementById('tripProgressCar').innerHTML = getNavIconHTML(key, 36);
@@ -3296,6 +3313,7 @@ out;`;
             span.title = ICON_LABELS[key] || key;
             span.addEventListener('click', () => {
                 selectedNavIcon = key;
+                lastRenderedProgressCarIcon = key;
                 document.getElementById('tripProgressCar').innerHTML = getNavIconHTML(key, 36);
                 if (carMarker) carMarker.getElement().innerHTML = getNavIconHTML(key, 50);
                 carIconPopover.style.display = 'none';
