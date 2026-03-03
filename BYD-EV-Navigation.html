@@ -86,6 +86,7 @@
         .search-dropdown-item .place-name,
         .search-dropdown-item .place-addr { font-family: 'Noto Sans Arabic', 'Outfit', sans-serif; }
         .search-dropdown-item .suggestion-distance { font-size: 0.8rem; color: var(--accent-blue); margin-top: 4px; }
+        .search-dropdown-item .suggestion-source { font-size: 0.65rem; color: var(--text-secondary); opacity: 0.85; margin-top: 2px; }
         
         /* Click mode buttons - high-tech style */
         .click-mode-btns { display: flex; gap: 10px; margin-bottom: 10px; }
@@ -421,7 +422,7 @@
             color: var(--text-secondary);
         }
         
-        /* Nav hints overlay – next step + junction/lane hint in one strip below header */
+        /* Nav hints overlay – next step + junction/lane hint; only visible when navigation or demo is active */
         .nav-hints-overlay {
             position: absolute;
             top: 108px;
@@ -429,10 +430,11 @@
             right: 16px;
             z-index: 22;
             max-width: 380px;
-            display: flex;
+            display: none;
             flex-direction: column;
             gap: 10px;
         }
+        .nav-hints-overlay.visible { display: flex; }
         .nav-instruction {
             max-width: 100%;
             background: #fff;
@@ -1472,7 +1474,15 @@
                     if (inEgypt.length) features = inEgypt;
                 }
             }
-            return features[0]?.center || null;
+            if (features.length > 0) return features[0].center || null;
+            // Fallback: free Nominatim + Photon so addresses/POIs (e.g. malls) are found when Mapbox has nothing
+            const prox = getProximityForSearch().split(',').map(Number);
+            const [nom, photon] = await Promise.all([
+                nominatimSearch(query, 'eg').then(r => r.length ? r : nominatimSearch(query + ' Egypt', 'eg')),
+                photonSearch(query, 5, prox.length >= 2 ? prox : null)
+            ]);
+            const combined = [...nom, ...photon].filter(f => f.center);
+            return combined[0]?.center || null;
         }
         
         // Optional Google Places (JavaScript SDK) – for Google Maps-style search. Set GOOGLE_PLACES_API_KEY and enable Places API in Google Cloud.
@@ -1518,7 +1528,79 @@
             });
         }
         
-        // Geocode autocomplete – use Google if key set (finds malls, businesses like Dandy Mega Mall); else Mapbox with fallbacks
+        // Free OSM Nominatim (no API key). Rate limit: 1 req/sec. Great for addresses & POIs.
+        async function nominatimSearch(query, countryCodes) {
+            const q = (query || '').trim();
+            if (q.length < 2) return [];
+            const params = new URLSearchParams({ q, format: 'json', limit: '12', addressdetails: '1' });
+            if (countryCodes) params.set('countrycodes', countryCodes);
+            try {
+                const res = await fetch('https://nominatim.openstreetmap.org/search?' + params.toString(), {
+                    headers: { 'Accept': 'application/json', 'Accept-Language': 'en,ar', 'User-Agent': 'EvNav-Hossam/1.0 (EV Navigation)' }
+                });
+                const data = await res.json();
+                if (!Array.isArray(data)) return [];
+                return data.map(item => ({
+                    center: [parseFloat(item.lon), parseFloat(item.lat)],
+                    place_name: item.display_name || '',
+                    text: item.name || item.display_name || item.address?.shop || item.address?.building || item.display_name || '',
+                    source: 'nominatim'
+                }));
+            } catch (e) { return []; }
+        }
+        
+        // Free Photon (Komoot/OSM) – no API key, search-as-you-type, addresses + POIs.
+        async function photonSearch(query, limit, proximity) {
+            const q = (query || '').trim();
+            if (q.length < 2) return [];
+            const params = new URLSearchParams({ q, limit: String(limit || 12), lang: 'en' });
+            if (proximity && proximity.length >= 2) params.set('lon', proximity[0]), params.set('lat', proximity[1]);
+            try {
+                const res = await fetch('https://photon.komoot.io/api/?' + params.toString());
+                const data = await res.json();
+                const features = data.features || [];
+                return features.map(f => {
+                    const coords = f.geometry?.coordinates;
+                    const p = f.properties || {};
+                    const name = p.name || '';
+                    const street = p.street ? (p.housenumber ? p.housenumber + ' ' + p.street : p.street) : '';
+                    const city = p.city || p.locality || p.state || '';
+                    const country = p.country || '';
+                    const place_name = [name, street, city, country].filter(Boolean).join(', ') || f.properties?.name || 'Unknown';
+                    return {
+                        center: Array.isArray(coords) && coords.length >= 2 ? [coords[0], coords[1]] : null,
+                        place_name,
+                        text: name || street || city || place_name,
+                        source: 'photon'
+                    };
+                }).filter(f => f.center);
+            } catch (e) { return []; }
+        }
+        
+        // Normalize Mapbox feature to common shape { center, place_name, text, source }
+        function mapboxToFeature(f) {
+            if (!f || !f.center) return null;
+            const ctx = (f.context || []).map(c => c.text).filter(Boolean);
+            const place_name = f.place_name || [f.text, ...ctx].filter(Boolean).join(', ');
+            return { center: f.center.slice(), place_name, text: f.text || f.place_name || '', source: 'mapbox' };
+        }
+        
+        // Deduplicate by approximate location (~15m), keep first occurrence order (Mapbox > Photon > Nominatim)
+        function dedupeByLocation(features, ref) {
+            const seen = new Set();
+            const out = [];
+            for (const f of features) {
+                const [lng, lat] = f.center || [];
+                if (lng == null || lat == null) continue;
+                const key = Math.round(lat * 1000) + ',' + Math.round(lng * 1000);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(f);
+            }
+            return out;
+        }
+        
+        // Geocode: Google if key set; else Mapbox + Photon + Nominatim merged (all places, addresses, POIs)
         let geocodeDebounce;
         async function geocodeAutocomplete(query, callback) {
             if (!query || query.length < 2) { callback([]); return; }
@@ -1528,26 +1610,51 @@
                 callback(features);
                 return;
             }
-            // Mapbox: try with place,poi,address first, then without type filter to catch more POIs (malls, etc.)
-            let features = await geocodeOne(query, GEOCODER_COUNTRY, 15, true);
-            if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
-                features = await geocodeOne((query + ' Egypt').trim(), GEOCODER_COUNTRY, 15, true);
+            const proximity = getCurrentPositionForSearch();
+            const proxStr = proximity ? `${proximity[0]},${proximity[1]}` : CAIRO_PROXIMITY;
+            const q = query.trim();
+            const withEgypt = !/cairo|egypt|مصر|القاهرة/i.test(q);
+            
+            // 1) Mapbox – multiple variants for max coverage
+            let mapboxList = await geocodeOne(q, GEOCODER_COUNTRY, 12, true);
+            if (mapboxList.length === 0 && withEgypt) mapboxList = await geocodeOne(q + ' Egypt', GEOCODER_COUNTRY, 12, true);
+            if (mapboxList.length === 0 && withEgypt) mapboxList = await geocodeOne(q + ' Cairo Egypt', GEOCODER_COUNTRY, 12, true);
+            if (mapboxList.length === 0) mapboxList = await geocodeOne(q, GEOCODER_COUNTRY, 12, false);
+            if (mapboxList.length === 0) {
+                mapboxList = await geocodeOne(q, '', 12, false);
+                const inEgypt = mapboxList.filter(f => (f.context && f.context.find(c => (c.id || '').startsWith('country'))?.text === 'Egypt'));
+                if (inEgypt.length) mapboxList = inEgypt;
             }
-            if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
-                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 15, true);
+            const mapboxFeatures = mapboxList.map(mapboxToFeature).filter(Boolean);
+            
+            // 2) Run Photon + Nominatim in parallel (both free, no key)
+            const EGYPT_BBOX = { latMin: 22, latMax: 32, lonMin: 24, lonMax: 37 };
+            const inEgypt = (f) => f.center && f.center[1] >= EGYPT_BBOX.latMin && f.center[1] <= EGYPT_BBOX.latMax && f.center[0] >= EGYPT_BBOX.lonMin && f.center[0] <= EGYPT_BBOX.lonMax;
+            const [photonRaw, nomFeatures] = await Promise.all([
+                photonSearch(q, 12, proximity),
+                withEgypt ? Promise.all([
+                    nominatimSearch(q, 'eg'),
+                    nominatimSearch(q + ' Egypt', 'eg')
+                ]).then(([a, b]) => {
+                    const byKey = new Map();
+                    [...a, ...b].forEach(f => { const k = (f.center[0].toFixed(4) + ',' + f.center[1].toFixed(4)); if (!byKey.has(k)) byKey.set(k, f); });
+                    return [...byKey.values()];
+                }) : nominatimSearch(q, 'eg')
+            ]);
+            const photonFeatures = GEOCODER_COUNTRY === 'EG' ? photonRaw.filter(inEgypt) : photonRaw;
+            
+            // 3) Merge: Mapbox first, then Photon, then Nominatim; dedupe by location
+            const merged = dedupeByLocation([...mapboxFeatures, ...photonFeatures, ...nomFeatures], proximity);
+            
+            // 4) Sort by distance if we have ref, else keep order; cap at 20
+            let result = merged;
+            if (proximity && merged.length > 1) {
+                result = merged
+                    .map(f => ({ f, d: distHaversine(proximity[1], proximity[0], f.center[1], f.center[0]) }))
+                    .sort((a, b) => a.d - b.d)
+                    .map(x => x.f);
             }
-            if (features.length === 0) {
-                features = await geocodeOne(query, GEOCODER_COUNTRY, 15, false);
-            }
-            if (features.length === 0) {
-                features = await geocodeOne(query, '', 15, false);
-                const inEgypt = features.filter(f => {
-                    const ctx = f.context && f.context.find(c => (c.id || '').startsWith('country'));
-                    return ctx && ctx.text === 'Egypt';
-                });
-                if (inEgypt.length) features = inEgypt;
-            }
-            callback(features);
+            callback(result.slice(0, 20));
         }
         
         function setupSearchAutocomplete(inputId, dropdownId) {
@@ -1562,13 +1669,15 @@
                 if (q.length < 2) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
                 geocodeDebounce = setTimeout(() => {
                     const ref = getCurrentPositionForSearch();
-                    geocodeAutocomplete(q, async (features) => {
+                        geocodeAutocomplete(q, async (features) => {
                         if (features.length === 0) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
                         const isGoogle = features[0].fromGoogle;
+                        const sourceLabel = (s) => ({ mapbox: 'Mapbox', photon: 'Photon', nominatim: 'OpenStreetMap' })[s] || '';
                         dropdown.innerHTML = features.map(f => {
                             const [lng, lat] = f.center || [0, 0];
                             const distStr = (!isGoogle && ref) ? formatDistanceFromKm(distHaversine(ref[1], ref[0], lat, lng)) : '';
                             const distHtml = distStr ? `<div class="suggestion-distance">${distStr} from current location</div>` : '';
+                            const sourceHtml = (!isGoogle && f.source && sourceLabel(f.source)) ? `<div class="suggestion-source">${sourceLabel(f.source)}</div>` : '';
                             const name = (f.place_name || f.text || '').replace(/"/g, '&quot;');
                             if (f.place_id) return `
                             <div class="search-dropdown-item" data-place-id="${(f.place_id || '').replace(/"/g, '&quot;')}" data-name="${name}">
@@ -1580,7 +1689,7 @@
                             <div class="search-dropdown-item" data-lon="${lng}" data-lat="${lat}" data-name="${name}">
                                 <div class="place-name" dir="auto">${(f.text || f.place_name || '').replace(/</g, '&lt;')}</div>
                                 <div class="place-addr" dir="auto">${(f.place_name || '').replace(/</g, '&lt;')}</div>
-                                ${distHtml}
+                                ${distHtml}${sourceHtml}
                             </div>
                             `;
                         }).join('');
@@ -2179,14 +2288,7 @@ out;`;
                 
                 update5PctMarker(parseFloat(distKm), simulatedCharge, batteryUsedPct, pctPerKm);
                 
-                if (currentRoute.legs?.[0]?.steps?.[0]?.maneuver) {
-                    document.getElementById('navInstruction').style.display = 'flex';
-                    const dist = currentRoute.legs[0].steps[0].distance || 0;
-                    document.getElementById('navDistance').textContent = dist >= 1000 ? 'In ' + (dist/1000).toFixed(1) + ' km' : 'In ' + Math.round(dist) + ' m';
-                    document.getElementById('navAction').textContent = currentRoute.legs[0].steps[0].maneuver.instruction || 'Head to destination';
-                    const mIcon0 = document.getElementById('navManeuverIcon');
-                    if (mIcon0) mIcon0.innerHTML = getManeuverIconSVG(currentRoute.legs[0].steps[0].maneuver?.type, currentRoute.legs[0].steps[0].maneuver?.modifier);
-                }
+                // Do not show nav instruction / junction overlay until user starts navigation or demo
                 if (resolve) resolve();
             } catch (e) {
                 alert('Route error: ' + (e && e.message ? e.message : String(e)));
@@ -2925,6 +3027,11 @@ out;`;
             if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
             document.getElementById('mapNavControls').classList.remove('visible');
+            const navHints = document.querySelector('.nav-hints-overlay');
+            if (navHints) { navHints.classList.remove('visible'); navHints.style.display = 'none'; }
+            document.getElementById('navInstruction').style.display = 'none';
+            const jv = document.getElementById('junctionView');
+            if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
             if (map && currentRoute && routeCoordinates.length) {
                 if (startMarker && endMarker) {
                     startMarker.setLngLat(routeCoordinates[0]).addTo(map);
@@ -3016,6 +3123,8 @@ out;`;
             mainContent.classList.add('navigating');
             document.getElementById('startNavBtn').disabled = true;
             lastSpokenInstruction = '';
+            const navHints = document.querySelector('.nav-hints-overlay');
+            if (navHints) { navHints.classList.add('visible'); navHints.style.display = 'flex'; }
             document.getElementById('navInstruction').style.display = 'flex';
             if (startMarker) startMarker.remove();
             if (endMarker) endMarker.remove();
@@ -3034,6 +3143,11 @@ out;`;
             document.getElementById('stopNavFloating').style.display = 'none';
             mainContent.classList.remove('navigating');
             window.speechSynthesis?.cancel();
+            const navHints = document.querySelector('.nav-hints-overlay');
+            if (navHints) { navHints.classList.remove('visible'); navHints.style.display = 'none'; }
+            document.getElementById('navInstruction').style.display = 'none';
+            const jv = document.getElementById('junctionView');
+            if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
             if (carMarker) { carMarker.remove(); carMarker = null; }
             if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
@@ -3059,6 +3173,8 @@ out;`;
             document.getElementById('startNavBtn').style.background = isRealNav ? 'linear-gradient(135deg, #ff5722, #e64a19)' : 'linear-gradient(135deg, var(--accent-green), #00cc6a)';
             if (isRealNav) {
                 lastSpokenInstruction = '';
+                const navHints = document.querySelector('.nav-hints-overlay');
+                if (navHints) { navHints.classList.add('visible'); navHints.style.display = 'flex'; }
                 document.getElementById('navInstruction').style.display = 'flex';
                 if (startMarker) startMarker.remove();
                 if (endMarker) endMarker.remove();
@@ -3076,6 +3192,11 @@ out;`;
                 if (gpsWatchId) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
                 lastGpsPos = null;
                 window.speechSynthesis?.cancel();
+                const navHints = document.querySelector('.nav-hints-overlay');
+                if (navHints) { navHints.classList.remove('visible'); navHints.style.display = 'none'; }
+                document.getElementById('navInstruction').style.display = 'none';
+                const jv = document.getElementById('junctionView');
+                if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
                 if (carMarker) { carMarker.remove(); carMarker = null; }
                 if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
                 document.getElementById('speedGaugesContainer').style.display = 'none';
