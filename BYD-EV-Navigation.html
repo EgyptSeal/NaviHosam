@@ -120,6 +120,78 @@
         .modal-overlay.show { display: flex; }
         .modal { background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; }
         .modal h3 { color: var(--accent-blue); margin-bottom: 16px; font-size: 1.1rem; }
+        
+        /* Route options modal – 3D high-tech */
+        .route-options-modal {
+            max-width: 420px;
+            width: 92%;
+            background: linear-gradient(165deg, rgba(18,26,42,0.98) 0%, rgba(10,14,23,0.99) 100%);
+            border: 1px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+        }
+        .route-options-modal .route-options-title {
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(0,212,255,0.2);
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, rgba(0,212,255,0.08), transparent);
+        }
+        .route-options-modal .route-options-list {
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .route-option-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            background: rgba(10,14,23,0.7);
+            border: 1px solid rgba(0,212,255,0.25);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .route-option-row:hover { border-color: var(--accent-blue); background: rgba(0,212,255,0.12); }
+        .route-option-row.selected { border-color: var(--accent-green); background: rgba(0,255,136,0.12); box-shadow: 0 0 20px rgba(0,255,136,0.2); }
+        .route-option-row .route-option-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; background: rgba(0,212,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .route-option-row .route-option-body { flex: 1; min-width: 0; }
+        .route-option-row .route-option-name { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 4px; }
+        .route-option-row .route-option-meta { font-size: 0.8rem; color: var(--accent-blue); margin-bottom: 4px; }
+        .route-option-row .route-option-benefits { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.35; }
+        .route-options-modal .route-options-actions {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(0,212,255,0.2);
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        .route-options-modal .route-options-actions button {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .route-options-modal .route-options-cancel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid var(--border-glow);
+            color: var(--text-secondary);
+        }
+        .route-options-modal .route-options-cancel:hover { background: rgba(255,255,255,0.12); color: var(--text-primary); }
+        .route-options-modal .route-options-ok {
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            border: none;
+            color: #0a0e17;
+        }
+        .route-options-modal .route-options-ok:hover { box-shadow: 0 4px 20px rgba(0,255,136,0.4); transform: translateY(-1px); }
+        .route-options-modal .route-options-ok:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .icon-option { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-glow); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
         .icon-option:hover { border-color: var(--accent-blue); }
         .icon-option.selected { border-color: var(--accent-green); background: rgba(0,255,136,0.1); }
@@ -1089,6 +1161,18 @@
             </div>
         </div>
         
+        <!-- Route options modal (choose route before Start Nav / Demo) -->
+        <div class="modal-overlay" id="routeOptionsModal">
+            <div class="modal route-options-modal">
+                <div class="route-options-title">Choose your route</div>
+                <div class="route-options-list" id="routeOptionsList"></div>
+                <div class="route-options-actions">
+                    <button type="button" class="route-options-cancel" id="routeOptionsCancelBtn">Cancel</button>
+                    <button type="button" class="route-options-ok" id="routeOptionsOkBtn">OK – Use this route</button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Settings Modal -->
         <div class="modal-overlay" id="settingsModal">
             <div class="modal">
@@ -1824,6 +1908,46 @@
             throw new Error('No route found');
         }
         
+        // Fetch multiple route options (alternatives + avoid tolls) for route-options modal
+        async function getDirectionsMultiple(from, to, waypoints = []) {
+            const coords = [from, ...waypoints, to].map(c => `${c[0]},${c[1]}`).join(';');
+            const profile = 'mapbox/driving-traffic';
+            const base = `https://api.mapbox.com/directions/v5/${profile}/${coords}?geometries=geojson&overview=full&steps=true&annotations=maxspeed,congestion&access_token=${MAPBOX_TOKEN}`;
+            const [resMain, resNoToll] = await Promise.all([
+                fetch(base + '&alternatives=true'),
+                fetch(base + '&exclude=toll')
+            ]);
+            const dataMain = await resMain.json();
+            const dataNoToll = await resNoToll.json();
+            const options = [];
+            const seen = new Set();
+            function addOption(route, label, benefits) {
+                if (!route || !route.geometry) return;
+                const key = Math.round((route.distance || 0) / 500) + '-' + Math.round((route.duration || 0) / 60);
+                if (seen.has(key)) return;
+                seen.add(key);
+                options.push({
+                    route,
+                    label,
+                    benefits,
+                    distance: route.distance || 0,
+                    duration: route.duration || 0
+                });
+            }
+            if (dataMain.routes && dataMain.routes[0]) {
+                addOption(dataMain.routes[0], 'Fastest (traffic)', 'Shortest time • Uses live traffic');
+                if (dataMain.routes[1]) addOption(dataMain.routes[1], 'Alternative route', 'Different path • Similar time');
+                if (dataMain.routes[2]) addOption(dataMain.routes[2], 'Second alternative', 'Another option • May be longer');
+            }
+            if (dataNoToll.routes && dataNoToll.routes[0]) {
+                const rt = dataNoToll.routes[0];
+                const key = Math.round((rt.distance || 0) / 500) + '-' + Math.round((rt.duration || 0) / 60);
+                if (!seen.has(key))
+                    addOption(rt, 'Avoid tolls', 'No toll roads • May take longer');
+            }
+            return options.length ? options : (dataMain.routes && dataMain.routes[0] ? [{ route: dataMain.routes[0], label: 'Fastest', benefits: 'Shortest time', distance: dataMain.routes[0].distance, duration: dataMain.routes[0].duration }] : []);
+        }
+        
         async function rerouteFromCurrentPosition() {
             if (!lastGpsPos || !currentRoute || !routeCoordinates.length || !map) return;
             const currentPos = [lastGpsPos.lng, lastGpsPos.lat];
@@ -2178,6 +2302,8 @@ out;`;
             } else if (endMarker) { endMarker.remove(); endMarker = null; }
         }
         
+        let routeOptionsContext = null;
+        
         async function continuePlan(fromCoord, toText, toCoordParam, resolve, userStopCoords = []) {
             const toCoord = toCoordParam || await geocode(toText);
             if (!toCoord) { alert('Could not find destination'); if (resolve) resolve(); return; }
@@ -2198,20 +2324,101 @@ out;`;
                 lastRouteUserStopsCount = userStopCoords.length;
                 lastRouteChargingAdds = sortedCharging.map(s => s.chargeToAdd ?? parseInt(document.getElementById('chargeToAddSlicer')?.value || 20));
                 
-                currentRoute = await getDirections(fromCoord, toCoord, waypoints);
-                routeCoordinates = currentRoute.geometry.coordinates;
+                const options = await getDirectionsMultiple(fromCoord, toCoord, waypoints);
+                if (!options || options.length === 0) { alert('No route found'); if (resolve) resolve(); return; }
                 
-                // Update route on map
+                if (options.length === 1) {
+                    await applyChosenRoute(fromCoord, toCoord, waypoints, options[0].route, resolve);
+                    return;
+                }
+                
+                routeOptionsContext = { fromCoord, toCoord, waypoints, options, resolve };
+                const modal = document.getElementById('routeOptionsModal');
+                const listEl = document.getElementById('routeOptionsList');
+                listEl.innerHTML = options.map((opt, i) => {
+                    const distKm = (opt.distance / 1000).toFixed(1);
+                    const durMin = Math.round(opt.duration / 60);
+                    const timeStr = durMin >= 60 ? Math.floor(durMin / 60) + ' h ' + (durMin % 60) + ' min' : durMin + ' min';
+                    const icon = i === 0 ? '⚡' : opt.label.indexOf('toll') !== -1 ? '🛣️' : '🔀';
+                    return `<div class="route-option-row" data-index="${i}">
+                        <div class="route-option-icon">${icon}</div>
+                        <div class="route-option-body">
+                            <div class="route-option-name">${opt.label}</div>
+                            <div class="route-option-meta">${distKm} km • ${timeStr}</div>
+                            <div class="route-option-benefits">${opt.benefits}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+                
+                let selectedIndex = 0;
+                listEl.querySelectorAll('.route-option-row').forEach((row, i) => {
+                    if (i === 0) row.classList.add('selected');
+                    row.addEventListener('click', () => {
+                        listEl.querySelectorAll('.route-option-row').forEach(r => r.classList.remove('selected'));
+                        row.classList.add('selected');
+                        selectedIndex = i;
+                        previewRouteOnMap(options[i].route, fromCoord, toCoord, waypoints);
+                    });
+                });
+                
+                document.getElementById('routeOptionsOkBtn').onclick = () => {
+                    const chosen = options[selectedIndex].route;
+                    modal.classList.remove('show');
+                    if (routeOptionsContext) {
+                        applyChosenRoute(routeOptionsContext.fromCoord, routeOptionsContext.toCoord, routeOptionsContext.waypoints, chosen, routeOptionsContext.resolve);
+                        routeOptionsContext = null;
+                    }
+                    setTimeout(() => alert('This is the route you will take. You can start navigation or run demo.'), 300);
+                };
+                const closeRouteModal = (applyResolve) => {
+                    modal.classList.remove('show');
+                    if (map.getSource('route')) {
+                        if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+                        if (map.getLayer('route-layer')) map.removeLayer('route-layer');
+                        map.removeSource('route');
+                    }
+                    routeOptionsContext = null;
+                    if (applyResolve && resolve) resolve();
+                };
+                document.getElementById('routeOptionsCancelBtn').onclick = () => closeRouteModal(true);
+                modal.addEventListener('click', (e) => { if (e.target === modal) closeRouteModal(true); });
+                
+                previewRouteOnMap(options[0].route, fromCoord, toCoord, waypoints);
+                modal.classList.add('show');
+                return;
+            } catch (e) {
+                alert('Route error: ' + (e && e.message ? e.message : String(e)));
+                document.getElementById('startNavBtn').disabled = false;
+                document.getElementById('runDemoBtn').disabled = false;
+                if (resolve) resolve();
+            }
+        }
+        
+        function previewRouteOnMap(route, fromCoord, toCoord, waypoints) {
+            if (!map || !route || !route.geometry) return;
+            if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+            if (map.getLayer('route-layer')) map.removeLayer('route-layer');
+            if (map.getSource('route')) map.removeSource('route');
+            map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } });
+            addRouteLayers();
+            const coords = route.geometry.coordinates;
+            const from = coords[0], to = coords[coords.length - 1];
+            map.fitBounds([from, to], { padding: 80, maxZoom: 12.5, duration: 600 });
+            map.easeTo({ pitch: 0, duration: 500 });
+        }
+        
+        async function applyChosenRoute(fromCoord, toCoord, waypoints, chosenRoute, resolve) {
+            try {
+                currentRoute = chosenRoute;
+                routeCoordinates = chosenRoute.geometry.coordinates;
+                
                 if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
-                if (map.getSource('route')) map.removeLayer('route-layer');
+                if (map.getLayer('route-layer')) map.removeLayer('route-layer');
                 if (map.getSource('route')) map.removeSource('route');
                 removeTrafficLightsLayer();
                 trafficLightsAlongRoute = [];
                 if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
-                map.addSource('route', {
-                    type: 'geojson',
-                    data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry }
-                });
+                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: chosenRoute.geometry } });
                 addRouteLayers();
                 (async () => {
                     try {
