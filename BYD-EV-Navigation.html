@@ -497,7 +497,7 @@
             color: var(--text-secondary);
         }
         
-        /* Nav hints overlay – next step + junction/lane hint; only visible when navigation or demo is active */
+        /* Nav hints overlay – replaced by floating info box; keep in DOM for legacy refs but hidden */
         .nav-hints-overlay {
             position: absolute;
             top: 108px;
@@ -505,11 +505,11 @@
             right: 16px;
             z-index: 22;
             max-width: 380px;
-            display: none;
+            display: none !important;
             flex-direction: column;
             gap: 10px;
         }
-        .nav-hints-overlay.visible { display: flex; }
+        .nav-hints-overlay.visible { display: none !important; }
         /* Nav instruction + junction: day = light, night = dark to match map */
         .nav-instruction {
             max-width: 100%;
@@ -597,6 +597,145 @@
         body:not([data-map-theme]) .junction-view .junction-drawing { color: var(--accent-blue); }
         body[data-map-theme="night"] .junction-view .j-road,
         body:not([data-map-theme]) .junction-view .j-road { stroke: #475569; }
+        
+        /* Floating info box – bottom-left, rounded, transparent, grid (active nav guidance) */
+        .nav-info-box {
+            position: absolute;
+            bottom: 180px;
+            left: 20px;
+            z-index: 22;
+            max-width: 320px;
+            width: calc(100vw - 40px);
+            border-radius: 16px;
+            background: linear-gradient(145deg, rgba(12,18,28,0.82) 0%, rgba(8,12,20,0.86) 100%);
+            border: 1px solid rgba(0,212,255,0.4);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,212,255,0.08), inset 0 1px 0 rgba(255,255,255,0.03);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            overflow: hidden;
+            pointer-events: auto;
+        }
+        .nav-info-box::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+            background-size: 12px 12px;
+            pointer-events: none;
+        }
+        .nav-info-box .ib-content { position: relative; z-index: 1; padding: 14px 16px; }
+        .nav-info-box .ib-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .nav-info-box .ib-time { font-size: 1.35rem; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.02em; }
+        .nav-info-box .ib-weather {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nav-info-box .ib-temp { font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); }
+        .nav-info-box .ib-conditions { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-info-box .ib-divider { height: 1px; background: linear-gradient(90deg, rgba(0,212,255,0.4), transparent); margin: 10px 0; }
+        .nav-info-box .ib-heading { font-size: 0.68rem; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.1em; margin-bottom: 8px; }
+        .nav-info-box .ib-trip-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.85rem;
+            color: var(--text-primary);
+        }
+        .nav-info-box .ib-trip-row .ib-label { color: var(--text-secondary); }
+        .nav-info-box .ib-trip-row .ib-val { color: var(--accent-blue); font-weight: 600; }
+        .nav-info-box .ib-fuel-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0,212,255,0.15);
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .nav-info-box .ib-fuel-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            width: 18%;
+            transition: width 0.25s ease;
+        }
+        .nav-info-box .ib-next {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(0,212,255,0.08);
+            border: 1px solid rgba(0,212,255,0.25);
+        }
+        .nav-info-box .ib-next-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .nav-info-box .ib-next-title { font-size: 0.68rem; font-weight: 700; color: var(--accent-blue); letter-spacing: 0.1em; }
+        .nav-info-box .ib-next-dismiss { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1rem; padding: 0 4px; line-height: 1; }
+        .nav-info-box .ib-next-dismiss:hover { color: var(--accent-blue); }
+        .nav-info-box .ib-next-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-info-box .ib-next-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(0,212,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 0 16px rgba(0,212,255,0.25);
+        }
+        .nav-info-box .ib-next-icon svg { width: 28px; height: 28px; display: block; }
+        .nav-info-box .ib-next-dist { font-size: 1.1rem; font-weight: 700; color: var(--accent-blue); }
+        .nav-info-box .ib-next-road { font-size: 0.9rem; color: var(--text-primary); margin-top: 2px; }
+        .nav-info-box .ib-junction-wrap {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(0,212,255,0.2);
+        }
+        .nav-info-box .ib-junction-drawing { width: 140px; height: 98px; margin: 0 auto 6px; display: block; color: var(--accent-blue); }
+        .nav-info-box .ib-junction-drawing svg { display: block; width: 100%; height: 100%; }
+        .nav-info-box .ib-junction-drawing .j-road { stroke: #64748b; fill: none; }
+        .nav-info-box .ib-junction-drawing .j-highlight { stroke: currentColor; fill: currentColor; }
+        .nav-info-box .ib-junction-label { font-size: 0.8rem; font-weight: 600; text-align: center; color: var(--accent-blue); letter-spacing: 0.02em; }
+        .nav-info-box .ib-next-collapsed .ib-next-main,
+        .nav-info-box .ib-next-collapsed .ib-junction-wrap { display: none !important; }
+        .nav-info-box .ib-poi-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        .nav-info-box .ib-poi-row .ib-poi-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(0,212,255,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+        .nav-info-box .ib-poi-row.ib-poi-highlight .ib-poi-icon { background: rgba(255,149,0,0.25); box-shadow: 0 0 12px rgba(255,149,0,0.3); }
+        .nav-info-box .ib-poi-row .ib-poi-name { flex: 1; }
+        .nav-info-box .ib-poi-row .ib-poi-dist { color: var(--accent-blue); font-weight: 600; }
         
         /* Map nav controls: zoom, tilt, recenter - right middle */
         .map-nav-controls {
@@ -1080,7 +1219,7 @@
                         <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
                         <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
                     </div>
-                    <div class="nav-hints-overlay">
+                    <div class="nav-hints-overlay" id="navHintsOverlay">
                         <div class="nav-instruction" id="navInstruction" style="display: none;">
                             <div class="maneuver-icon" id="navManeuverIcon"></div>
                             <div class="nav-instruction-text">
@@ -1092,6 +1231,50 @@
                             <div class="junction-drawing" id="junctionDrawing"></div>
                             <div class="junction-label" id="junctionLabel" dir="auto"></div>
                         </div>
+                    </div>
+                </div>
+                <!-- Floating info box (replaces nav tips when active) -->
+                <div class="nav-info-box" id="navInfoBox">
+                    <div class="ib-content">
+                        <div class="ib-top">
+                            <div class="ib-time" id="ibTime">--:--</div>
+                            <div class="ib-weather">
+                                <span class="ib-temp" id="ibTemp">--°C</span>
+                                <div>
+                                    <div class="ib-conditions" id="ibConditions">--</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ib-divider"></div>
+                        <div class="ib-heading">TRIP OVERVIEW</div>
+                        <div class="ib-trip-row"><span class="ib-label">DISTANCE</span><span class="ib-val" id="ibDistance">-- km</span></div>
+                        <div class="ib-trip-row"><span class="ib-label">ETA</span><span class="ib-val" id="ibEta">--</span></div>
+                        <div class="ib-trip-row"><span class="ib-label">DURATION</span><span class="ib-val" id="ibDuration">-- min</span></div>
+                        <div class="ib-trip-row"><span class="ib-label">FUEL</span><span class="ib-val" id="ibFuel">--%</span></div>
+                        <div class="ib-fuel-bar"><div class="ib-fuel-fill" id="ibFuelFill" style="width: 18%;"></div></div>
+                        <div class="ib-divider"></div>
+                        <div class="ib-next" id="ibNextBlock">
+                            <div class="ib-next-head">
+                                <span class="ib-next-title">NEXT TURN</span>
+                                <button type="button" class="ib-next-dismiss" id="ibNextDismiss" title="Minimize">✕</button>
+                            </div>
+                            <div class="ib-next-main">
+                                <div class="ib-next-icon" id="ibNextIcon"></div>
+                                <div>
+                                    <div class="ib-next-dist" id="ibNextDist">--</div>
+                                    <div class="ib-next-road" id="ibNextRoad" dir="auto">--</div>
+                                </div>
+                            </div>
+                            <div class="ib-junction-wrap" id="ibJunctionWrap" style="display: none;">
+                                <div class="ib-junction-drawing" id="ibJunctionDrawing"></div>
+                                <div class="ib-junction-label" id="ibJunctionLabel" dir="auto"></div>
+                            </div>
+                        </div>
+                        <div class="ib-divider"></div>
+                        <div class="ib-heading">POINTS OF INTEREST</div>
+                        <div class="ib-poi-row"><span class="ib-poi-icon">🔌</span><span class="ib-poi-name">Charging</span><span class="ib-poi-dist" id="ibPoiCharge">--</span></div>
+                        <div class="ib-poi-row"><span class="ib-poi-icon">P</span><span class="ib-poi-name">Parking</span><span class="ib-poi-dist" id="ibPoiParking">--</span></div>
+                        <div class="ib-poi-row ib-poi-highlight"><span class="ib-poi-icon">🍴</span><span class="ib-poi-name">Restaurant</span><span class="ib-poi-dist" id="ibPoiRestaurant">--</span></div>
                     </div>
                 </div>
                 <button class="stop-nav-floating" id="stopNavFloating" style="display:none;" title="Stop Navigation">⏹ Stop</button>
@@ -2531,6 +2714,13 @@ out;`;
                             chargingPinMarkers.push(new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([s.lon, s.lat]).addTo(map));
                         });
                         renderChargingStations();
+                        const ibPoiCharge = document.getElementById('ibPoiCharge');
+                        if (ibPoiCharge && chargingStations.length > 0) {
+                            const sorted = [...chargingStations].sort((a, b) =>
+                                distanceAlongRouteToPoint([a.lon, a.lat], routeCoordinates) - distanceAlongRouteToPoint([b.lon, b.lat], routeCoordinates));
+                            const distKmFirst = (distanceAlongRouteToPoint([sorted[0].lon, sorted[0].lat], routeCoordinates) / 1000).toFixed(1);
+                            ibPoiCharge.textContent = distKmFirst + ' km';
+                        }
                     } catch (e) { chargingStations = []; }
                 })();
                 
@@ -2573,6 +2763,10 @@ out;`;
                 
                 simulatedCharge = parseInt(document.getElementById('startBatterySlicer').value);
                 document.getElementById('currentCharge').textContent = simulatedCharge + '%';
+                const ibF = document.getElementById('ibFuel');
+                const ibFF = document.getElementById('ibFuelFill');
+                if (ibF) ibF.textContent = simulatedCharge + '%';
+                if (ibFF) ibFF.style.width = Math.max(0, Math.min(100, simulatedCharge)) + '%';
                 const hcv = document.getElementById('headerChargeValue');
                 if (hcv) hcv.textContent = simulatedCharge + '%';
                 simulatedProgress = 0;
@@ -2601,6 +2795,19 @@ out;`;
                 const sufficient = parseFloat(distKm) <= realistic && endChargeAtArrival >= targetCharge;
                 document.getElementById('rangeSufficient').textContent = sufficient ? '✓ Yes' : '✗ Need charging';
                 document.getElementById('rangeSufficient').style.color = sufficient ? 'var(--accent-green)' : 'var(--accent-orange)';
+                
+                const etaDate = new Date(Date.now() + durMin * 60000);
+                const etaStr = etaDate.getHours().toString().padStart(2,'0') + ':' + etaDate.getMinutes().toString().padStart(2,'0');
+                const ibDistance = document.getElementById('ibDistance');
+                const ibEta = document.getElementById('ibEta');
+                const ibDuration = document.getElementById('ibDuration');
+                const ibFuel = document.getElementById('ibFuel');
+                const ibFuelFill = document.getElementById('ibFuelFill');
+                if (ibDistance) ibDistance.textContent = distKm + ' km';
+                if (ibEta) ibEta.textContent = etaStr;
+                if (ibDuration) ibDuration.textContent = durMin + ' min';
+                if (ibFuel) ibFuel.textContent = endChargeAtArrival + '%';
+                if (ibFuelFill) ibFuelFill.style.width = Math.max(0, Math.min(100, endChargeAtArrival)) + '%';
                 
                 update5PctMarker(parseFloat(distKm), simulatedCharge, batteryUsedPct, pctPerKm);
                 
@@ -2816,24 +3023,29 @@ out;`;
                             const navStepKey = i + '-' + j + '-' + (junctionShownThisStep ? 1 : 0) + '-' + Math.floor(distM / 25);
                             if (navStepKey !== lastNavStepKey) {
                                 lastNavStepKey = navStepKey;
+                                const distStr = distM >= 1000 ? (distM/1000).toFixed(1) + ' km' : distM + ' m';
                                 document.getElementById('navDistance').textContent = distM >= 1000 ? 'In ' + (distM/1000).toFixed(1) + ' km' : 'In ' + distM + ' m';
                                 document.getElementById('navAction').textContent = step.maneuver?.instruction || 'Continue';
                                 const mIcon = document.getElementById('navManeuverIcon');
-                                if (mIcon) mIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
-                                document.getElementById('navInstruction').style.display = 'flex';
-                                const junctionView = document.getElementById('junctionView');
-                                const junctionDrawing = document.getElementById('junctionDrawing');
-                                const junctionLabel = document.getElementById('junctionLabel');
-                                if (junctionView && junctionDrawing && junctionLabel) {
+                                const svg = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
+                                if (mIcon) mIcon.innerHTML = svg;
+                                const ibNextDist = document.getElementById('ibNextDist');
+                                const ibNextRoad = document.getElementById('ibNextRoad');
+                                const ibNextIcon = document.getElementById('ibNextIcon');
+                                if (ibNextDist) ibNextDist.textContent = distStr;
+                                if (ibNextRoad) ibNextRoad.textContent = (step.name || (step.names && step.names[0]) || step.maneuver?.instruction || '--').trim() || '--';
+                                if (ibNextIcon) ibNextIcon.innerHTML = svg || '';
+                                const ibJunctionWrap = document.getElementById('ibJunctionWrap');
+                                const ibJunctionDrawing = document.getElementById('ibJunctionDrawing');
+                                const ibJunctionLabel = document.getElementById('ibJunctionLabel');
+                                if (ibJunctionWrap && ibJunctionDrawing && ibJunctionLabel) {
                                     if (junctionShownThisStep) {
                                         const j = getJunctionViewSVG(step.maneuver?.type, step.maneuver?.modifier, step.maneuver?.instruction);
-                                        junctionDrawing.innerHTML = j.svg;
-                                        junctionLabel.textContent = j.label;
-                                        junctionView.classList.add('visible');
-                                        junctionView.style.display = 'block';
+                                        ibJunctionDrawing.innerHTML = j.svg;
+                                        ibJunctionLabel.textContent = j.label;
+                                        ibJunctionWrap.style.display = 'block';
                                     } else {
-                                        junctionView.classList.remove('visible');
-                                        junctionView.style.display = 'none';
+                                        ibJunctionWrap.style.display = 'none';
                                     }
                                 }
                             }
@@ -2849,8 +3061,8 @@ out;`;
                 }
                 if (!junctionShownThisStep) {
                     if (lastNavStepKey !== '') { lastNavStepKey = ''; }
-                    const jv = document.getElementById('junctionView');
-                    if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
+                    const ibJunctionWrap = document.getElementById('ibJunctionWrap');
+                    if (ibJunctionWrap) ibJunctionWrap.style.display = 'none';
                 }
             }
             
@@ -3216,9 +3428,14 @@ out;`;
             const pctPerKm = realistic > 0 ? 100 / realistic : 0.5;
             const used = doneDist * pctPerKm;
             simulatedCharge = Math.max(0, startBattery - used);
-            document.getElementById('currentCharge').textContent = Math.round(simulatedCharge) + '%';
+            const chargePct = Math.round(simulatedCharge);
+            document.getElementById('currentCharge').textContent = chargePct + '%';
             const headerChargeVal = document.getElementById('headerChargeValue');
-            if (headerChargeVal) headerChargeVal.textContent = Math.round(simulatedCharge) + '%';
+            if (headerChargeVal) headerChargeVal.textContent = chargePct + '%';
+            const ibF = document.getElementById('ibFuel');
+            const ibFF = document.getElementById('ibFuelFill');
+            if (ibF) ibF.textContent = chargePct + '%';
+            if (ibFF) ibFF.style.width = Math.max(0, Math.min(100, chargePct)) + '%';
             
             const legs = currentRoute.legs || [];
             let endChargeAtArrival = simulatedCharge;
@@ -3270,12 +3487,34 @@ out;`;
         setInterval(updateDriving, 100);
         setInterval(updateMapStyle, 60000);
         setInterval(() => {
+            const d = new Date();
+            const ibTime = document.getElementById('ibTime');
+            if (ibTime) ibTime.textContent = (d.getHours() % 12 || 12) + ':' + d.getMinutes().toString().padStart(2, '0') + (d.getHours() < 12 ? ' AM' : ' PM');
+            const ibTemp = document.getElementById('ibTemp');
+            if (ibTemp) ibTemp.textContent = (document.getElementById('tempSlicer')?.value || 20) + '°C';
+            const ibCond = document.getElementById('ibConditions');
+            if (ibCond) ibCond.textContent = 'Partly cloudy';
+        }, 1000);
+        setInterval(() => {
             if (map && map.getLayer('route-layer-glow')) {
                 const t = (Date.now() / 600) % (2 * Math.PI);
                 map.setPaintProperty('route-layer-glow', 'line-opacity', 0.35 + 0.25 * (Math.sin(t) + 1) / 2);
             }
         }, 150);
         document.getElementById('planRouteBtn').addEventListener('click', planRoute);
+        const ibNextDismiss = document.getElementById('ibNextDismiss');
+        const ibNextBlock = document.getElementById('ibNextBlock');
+        if (ibNextDismiss && ibNextBlock) {
+            ibNextDismiss.addEventListener('click', () => ibNextBlock.classList.toggle('ib-next-collapsed'));
+        }
+        document.getElementById('ibNextDismiss')?.addEventListener('click', () => {
+            const ibNextDist = document.getElementById('ibNextDist');
+            const ibNextRoad = document.getElementById('ibNextRoad');
+            const ibNextIcon = document.getElementById('ibNextIcon');
+            if (ibNextDist) ibNextDist.textContent = '--';
+            if (ibNextRoad) ibNextRoad.textContent = '--';
+            if (ibNextIcon) ibNextIcon.innerHTML = '';
+        });
         document.getElementById('fromCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('fromInput'));
         document.getElementById('toCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('toInput'));
         document.getElementById('addStopBtn').addEventListener('click', () => {
@@ -3356,6 +3595,14 @@ out;`;
             mainContent.classList.remove('navigating');
             window.speechSynthesis?.cancel();
             currentStreetName = '';
+            const ibNextDist = document.getElementById('ibNextDist');
+            const ibNextRoad = document.getElementById('ibNextRoad');
+            const ibNextIcon = document.getElementById('ibNextIcon');
+            if (ibNextDist) ibNextDist.textContent = '--';
+            if (ibNextRoad) ibNextRoad.textContent = '--';
+            if (ibNextIcon) ibNextIcon.innerHTML = '';
+            const ibJunctionWrap = document.getElementById('ibJunctionWrap');
+            if (ibJunctionWrap) ibJunctionWrap.style.display = 'none';
             if (carMarker) { carMarker.remove(); carMarker = null; }
             if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
@@ -3457,8 +3704,8 @@ out;`;
             document.getElementById('startNavBtn').disabled = true;
             lastSpokenInstruction = '';
             const navHints = document.querySelector('.nav-hints-overlay');
-            if (navHints) { navHints.classList.add('visible'); navHints.style.display = 'flex'; }
-            document.getElementById('navInstruction').style.display = 'flex';
+            if (navHints) { navHints.classList.remove('visible'); navHints.style.display = 'none'; }
+            document.getElementById('navInstruction').style.display = 'none';
             if (startMarker) startMarker.remove();
             if (endMarker) endMarker.remove();
             if (document.getElementById('audioGuidance')?.checked) speakGuidance('Demo started. ' + (document.getElementById('navAction').textContent || 'Follow the route'));
@@ -3508,8 +3755,8 @@ out;`;
             if (isRealNav) {
                 lastSpokenInstruction = '';
                 const navHints = document.querySelector('.nav-hints-overlay');
-                if (navHints) { navHints.classList.add('visible'); navHints.style.display = 'flex'; }
-                document.getElementById('navInstruction').style.display = 'flex';
+                if (navHints) { navHints.classList.remove('visible'); navHints.style.display = 'none'; }
+                document.getElementById('navInstruction').style.display = 'none';
                 if (startMarker) startMarker.remove();
                 if (endMarker) endMarker.remove();
                 if (document.getElementById('audioGuidance')?.checked) speakGuidance('Real navigation started. Use your GPS location.');
