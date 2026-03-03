@@ -164,6 +164,7 @@
         .route-option-row .route-option-name { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; margin-bottom: 4px; }
         .route-option-row .route-option-meta { font-size: 0.8rem; color: var(--accent-blue); margin-bottom: 4px; }
         .route-option-row .route-option-benefits { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.35; }
+        .route-option-row .route-option-battery { font-size: 0.8rem; color: var(--accent-green); margin-top: 6px; font-weight: 500; }
         .route-options-modal .route-options-actions {
             padding: 16px 20px;
             border-top: 1px solid rgba(0,212,255,0.2);
@@ -1358,6 +1359,22 @@
             });
         }
         
+        function addRouteLayersPreview() {
+            if (!map.getSource('route')) return;
+            if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+            if (map.getLayer('route-layer')) map.removeLayer('route-layer');
+            map.addLayer({
+                id: 'route-layer',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
+                paint: {
+                    'line-color': '#1a73e8',
+                    'line-width': 4
+                }
+            });
+        }
+        
         // Update map style based on time (6am-6pm = day)
         function updateMapStyle() {
             if (!map) return;
@@ -2332,6 +2349,20 @@ out;`;
                     return;
                 }
                 
+                const realistic = calculateRealisticRange();
+                const startBattery = parseInt(document.getElementById('startBatterySlicer')?.value || 100);
+                const pctPerKm = realistic > 0 ? 100 / realistic : 0.5;
+                options.forEach(opt => {
+                    const distKm = opt.distance / 1000;
+                    const batteryUsedPct = distKm * pctPerKm;
+                    opt.batteryAtArrival = Math.max(0, Math.round(startBattery - batteryUsedPct));
+                    opt.batteryUsedPct = batteryUsedPct;
+                });
+                const maxBatteryUsed = Math.max(...options.map(o => o.batteryUsedPct));
+                options.forEach(opt => {
+                    opt.savePct = Math.round(maxBatteryUsed - opt.batteryUsedPct);
+                });
+                
                 routeOptionsContext = { fromCoord, toCoord, waypoints, options, resolve };
                 const modal = document.getElementById('routeOptionsModal');
                 const listEl = document.getElementById('routeOptionsList');
@@ -2340,12 +2371,15 @@ out;`;
                     const durMin = Math.round(opt.duration / 60);
                     const timeStr = durMin >= 60 ? Math.floor(durMin / 60) + ' h ' + (durMin % 60) + ' min' : durMin + ' min';
                     const icon = i === 0 ? '⚡' : opt.label.indexOf('toll') !== -1 ? '🛣️' : '🔀';
+                    const batteryStr = '~' + opt.batteryAtArrival + '% at arrival';
+                    const saveStr = opt.savePct > 0 ? ' • Save ' + opt.savePct + '% vs longest route' : '';
                     return `<div class="route-option-row" data-index="${i}">
                         <div class="route-option-icon">${icon}</div>
                         <div class="route-option-body">
                             <div class="route-option-name">${opt.label}</div>
                             <div class="route-option-meta">${distKm} km • ${timeStr}</div>
                             <div class="route-option-benefits">${opt.benefits}</div>
+                            <div class="route-option-battery">${batteryStr}${saveStr}</div>
                         </div>
                     </div>`;
                 }).join('');
@@ -2368,7 +2402,6 @@ out;`;
                         applyChosenRoute(routeOptionsContext.fromCoord, routeOptionsContext.toCoord, routeOptionsContext.waypoints, chosen, routeOptionsContext.resolve);
                         routeOptionsContext = null;
                     }
-                    setTimeout(() => alert('This is the route you will take. You can start navigation or run demo.'), 300);
                 };
                 const closeRouteModal = (applyResolve) => {
                     modal.classList.remove('show');
@@ -2400,7 +2433,7 @@ out;`;
             if (map.getLayer('route-layer')) map.removeLayer('route-layer');
             if (map.getSource('route')) map.removeSource('route');
             map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } });
-            addRouteLayers();
+            addRouteLayersPreview();
             const coords = route.geometry.coordinates;
             const from = coords[0], to = coords[coords.length - 1];
             map.fitBounds([from, to], { padding: 80, maxZoom: 12.5, duration: 600 });
