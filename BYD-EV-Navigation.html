@@ -1330,31 +1330,21 @@
             };
         }
         
+        const ROUTE_LINE_COLOR = '#6ec5ff';
+        const ROUTE_LINE_WIDTH = 4;
+        
         function addRouteLayers() {
             if (!map.getSource('route') || !currentRoute) return;
-            const paint = getRouteLinePaint();
             if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
             if (map.getLayer('route-layer')) map.removeLayer('route-layer');
-            map.addLayer({
-                id: 'route-layer-glow',
-                type: 'line',
-                source: 'route',
-                layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
-                paint: {
-                    'line-color': paint.glowColor,
-                    'line-width': paint.glowWidth,
-                    'line-blur': 14,
-                    'line-opacity': 1
-                }
-            });
             map.addLayer({
                 id: 'route-layer',
                 type: 'line',
                 source: 'route',
                 layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
                 paint: {
-                    'line-color': paint.color,
-                    'line-width': paint.width
+                    'line-color': ROUTE_LINE_COLOR,
+                    'line-width': ROUTE_LINE_WIDTH
                 }
             });
         }
@@ -1369,10 +1359,23 @@
                 source: 'route',
                 layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
                 paint: {
-                    'line-color': '#1a73e8',
-                    'line-width': 4
+                    'line-color': ROUTE_LINE_COLOR,
+                    'line-width': ROUTE_LINE_WIDTH
                 }
             });
+        }
+        
+        function getRouteBounds(coords) {
+            if (!coords || coords.length === 0) return null;
+            let minLng = coords[0][0], maxLng = coords[0][0], minLat = coords[0][1], maxLat = coords[0][1];
+            for (let i = 1; i < coords.length; i++) {
+                const c = coords[i];
+                if (c[0] < minLng) minLng = c[0];
+                if (c[0] > maxLng) maxLng = c[0];
+                if (c[1] < minLat) minLat = c[1];
+                if (c[1] > maxLat) maxLat = c[1];
+            }
+            return [[minLng, minLat], [maxLng, maxLat]];
         }
         
         // Update map style based on time (6am-6pm = day)
@@ -2435,8 +2438,10 @@ out;`;
             map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } });
             addRouteLayersPreview();
             const coords = route.geometry.coordinates;
-            const from = coords[0], to = coords[coords.length - 1];
-            map.fitBounds([from, to], { padding: 80, maxZoom: 12.5, duration: 600 });
+            const bounds = getRouteBounds(coords);
+            if (bounds) {
+                map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 600 });
+            }
             map.easeTo({ pitch: 0, duration: 500 });
         }
         
