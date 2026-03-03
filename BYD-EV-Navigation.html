@@ -1055,6 +1055,8 @@
     <script>
         // Configuration
         const MAPBOX_TOKEN = 'pk.eyJ1IjoiaG9zc2FtaGVnYXppODUiLCJhIjoiY21tN3YxMGFtMHJqcTJwcjFjejMxM2RzZCJ9.vpxr16H3Rj31KkVQ6l3kFw';
+        // Optional: set to your Google API key (Places API + Geocoding API) for Google Maps-style place search. Leave empty to use Mapbox only.
+        const GOOGLE_PLACES_API_KEY = '';
         const MAP_STYLE_DAY = 'mapbox://styles/hossamhegazi85/cmm6weaem003b01ryhf3p4bcp';
         const MAP_STYLE_NIGHT = 'mapbox://styles/hossamhegazi85/cmm7v9r6q003h01qy02y80t01';
         
@@ -1444,7 +1446,8 @@
         }
         async function geocodeOne(query, country, limit) {
             const proximity = getProximityForSearch();
-            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=${limit || 10}&proximity=${proximity}` + (country ? `&country=${country}` : '');
+            const types = 'place,poi,address';
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=${limit || 10}&proximity=${proximity}&types=${types}` + (country ? `&country=${country}` : '');
             const res = await fetch(url);
             const data = await res.json();
             return data.features || [];
@@ -1464,10 +1467,59 @@
             return features[0]?.center || null;
         }
         
-        // Geocode autocomplete – Egypt bias; retry with "Cairo Egypt" if no results so hotels (e.g. Carlton Nile) are found
+        // Optional Google Places (JavaScript SDK) – for Google Maps-style search. Set GOOGLE_PLACES_API_KEY and enable Places API in Google Cloud.
+        let googlePlacesReady = null;
+        function loadGooglePlaces() {
+            if (googlePlacesReady) return googlePlacesReady;
+            if (!GOOGLE_PLACES_API_KEY) return Promise.resolve(false);
+            googlePlacesReady = new Promise((resolve) => {
+                if (window.google && window.google.maps && window.google.maps.places) { resolve(true); return; }
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_PLACES_API_KEY}&libraries=places&callback=window.__googlePlacesLoaded`;
+                script.async = true;
+                window.__googlePlacesLoaded = () => resolve(true);
+                script.onerror = () => resolve(false);
+                document.head.appendChild(script);
+            });
+            return googlePlacesReady;
+        }
+        async function googlePlacesAutocomplete(query) {
+            if (!GOOGLE_PLACES_API_KEY) return [];
+            const ok = await loadGooglePlaces();
+            if (!ok || !window.google.maps.places) return [];
+            return new Promise((resolve) => {
+                const service = new google.maps.places.AutocompleteService();
+                service.getPlacePredictions({ input: query, componentRestrictions: { country: 'eg' } }, (predictions, status) => {
+                    resolve(predictions && status === google.maps.places.PlacesServiceStatus.OK ? predictions : []);
+                });
+            });
+        }
+        async function googlePlaceDetails(placeId) {
+            if (!GOOGLE_PLACES_API_KEY) return null;
+            const ok = await loadGooglePlaces();
+            if (!ok || !window.google.maps.places) return null;
+            return new Promise((resolve) => {
+                const div = document.createElement('div');
+                const service = new google.maps.places.PlacesService(div);
+                service.getDetails({ placeId, fields: ['geometry', 'formatted_address', 'name'] }, (place, status) => {
+                    if (place && status === google.maps.places.PlacesServiceStatus.OK && place.geometry && place.geometry.location) {
+                        const lat = place.geometry.location.lat(), lng = place.geometry.location.lng();
+                        resolve({ lng, lat, place_name: place.formatted_address || place.name || '', text: place.name || place.formatted_address || '' });
+                    } else resolve(null);
+                });
+            });
+        }
+        
+        // Geocode autocomplete – use Google if key set, else Mapbox with Egypt bias and POI types
         let geocodeDebounce;
         async function geocodeAutocomplete(query, callback) {
             if (!query || query.length < 2) { callback([]); return; }
+            if (GOOGLE_PLACES_API_KEY) {
+                const predictions = await googlePlacesAutocomplete(query);
+                const features = predictions.map(p => ({ place_id: p.place_id, place_name: p.description, text: p.structured_formatting?.main_text || p.description, center: null, fromGoogle: true }));
+                callback(features);
+                return;
+            }
             let features = await geocodeOne(query, GEOCODER_COUNTRY, 12);
             if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
                 features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 12);
@@ -1495,28 +1547,48 @@
                 if (q.length < 2) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
                 geocodeDebounce = setTimeout(() => {
                     const ref = getCurrentPositionForSearch();
-                    geocodeAutocomplete(q, (features) => {
+                    geocodeAutocomplete(q, async (features) => {
                         if (features.length === 0) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+                        const isGoogle = features[0].fromGoogle;
                         dropdown.innerHTML = features.map(f => {
                             const [lng, lat] = f.center || [0, 0];
-                            const distStr = ref ? formatDistanceFromKm(distHaversine(ref[1], ref[0], lat, lng)) : '';
+                            const distStr = (!isGoogle && ref) ? formatDistanceFromKm(distHaversine(ref[1], ref[0], lat, lng)) : '';
                             const distHtml = distStr ? `<div class="suggestion-distance">${distStr} from current location</div>` : '';
+                            const name = (f.place_name || f.text || '').replace(/"/g, '&quot;');
+                            if (f.place_id) return `
+                            <div class="search-dropdown-item" data-place-id="${(f.place_id || '').replace(/"/g, '&quot;')}" data-name="${name}">
+                                <div class="place-name" dir="auto">${(f.text || f.place_name || '').replace(/</g, '&lt;')}</div>
+                                <div class="place-addr" dir="auto">${(f.place_name || '').replace(/</g, '&lt;')}</div>
+                            </div>
+                            `;
                             return `
-                            <div class="search-dropdown-item" data-lon="${lng}" data-lat="${lat}" data-name="${(f.place_name || '').replace(/"/g,'&quot;')}">
-                                <div class="place-name" dir="auto">${f.text || f.place_name}</div>
-                                <div class="place-addr" dir="auto">${f.place_name || ''}</div>
+                            <div class="search-dropdown-item" data-lon="${lng}" data-lat="${lat}" data-name="${name}">
+                                <div class="place-name" dir="auto">${(f.text || f.place_name || '').replace(/</g, '&lt;')}</div>
+                                <div class="place-addr" dir="auto">${(f.place_name || '').replace(/</g, '&lt;')}</div>
                                 ${distHtml}
                             </div>
-                        `;
+                            `;
                         }).join('');
                         dropdown.style.display = 'block';
                         dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
-                            item.addEventListener('click', () => {
-                                input.value = item.dataset.name;
+                            item.addEventListener('click', async () => {
+                                const placeId = item.dataset.placeId;
+                                if (placeId) {
+                                    item.style.opacity = '0.7';
+                                    const details = await googlePlaceDetails(placeId);
+                                    item.style.opacity = '';
+                                    if (details) {
+                                        input.value = details.place_name || details.text;
+                                        if (inputId === 'fromInput') fromCoordManual = [details.lng, details.lat];
+                                        else toCoordManual = [details.lng, details.lat];
+                                    } else input.value = item.dataset.name || '';
+                                } else {
+                                    input.value = item.dataset.name;
+                                    if (inputId === 'fromInput') fromCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
+                                    else toCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
+                                }
                                 dropdown.innerHTML = '';
                                 dropdown.style.display = 'none';
-                                if (inputId === 'fromInput') fromCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
-                                else toCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
                                 updateStartEndPinsFromCoords();
                             });
                         });
