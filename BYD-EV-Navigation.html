@@ -1511,10 +1511,28 @@
         }
         
         const ROUTE_LINE_COLOR = '#3700ff';
-        const ROUTE_LINE_WIDTH = 4;
+        const ROUTE_LINE_WIDTH = 10;
         const ROUTE_GLOW_COLOR = 'rgba(55, 0, 255, 0.35)';
-        const ROUTE_GLOW_WIDTH = 14;
-        const ROUTE_GLOW_BLUR = 8;
+        const ROUTE_GLOW_WIDTH = 24;
+        const ROUTE_GLOW_BLUR = 12;
+        
+        /** Chaikin's corner-cutting: smooths a polyline for rounder turns. Apply 2 passes for smooth curves. */
+        function smoothRouteCoordinates(coords, passes) {
+            if (!coords || coords.length < 2) return coords || [];
+            passes = passes || 2;
+            let out = coords.slice();
+            for (let p = 0; p < passes; p++) {
+                const next = [out[0]];
+                for (let i = 0; i < out.length - 1; i++) {
+                    const a = out[i], b = out[i + 1];
+                    next.push([0.75 * a[0] + 0.25 * b[0], 0.75 * a[1] + 0.25 * b[1]]);
+                    next.push([0.25 * a[0] + 0.75 * b[0], 0.25 * a[1] + 0.75 * b[1]]);
+                }
+                next.push(out[out.length - 1]);
+                out = next;
+            }
+            return out;
+        }
         
         function addRouteLayers() {
             if (!map.getSource('route') || !currentRoute) return;
@@ -1669,7 +1687,8 @@
             map.once('style.load', () => {
                 add3DBuildings();
                 if (currentRoute && routeCoordinates.length) {
-                    map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry } });
+                    const smoothed = { type: 'LineString', coordinates: smoothRouteCoordinates(currentRoute.geometry.coordinates) };
+                    map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: smoothed } });
                     addRouteLayers();
                     const fromCoord = routeCoordinates[0], toCoord = routeCoordinates[routeCoordinates.length - 1];
                     if (startMarker) startMarker.remove();
@@ -2260,7 +2279,8 @@
                 if (map.getSource('route')) map.removeSource('route');
                 removeTrafficLightsLayer();
                 trafficLightsAlongRoute = [];
-                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry } });
+                const smoothedReroute = { type: 'LineString', coordinates: smoothRouteCoordinates(currentRoute.geometry.coordinates) };
+                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: smoothedReroute } });
                 addRouteLayers();
                 (async () => {
                     try {
@@ -2713,7 +2733,8 @@ out;`;
             if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
             if (map.getLayer('route-layer')) map.removeLayer('route-layer');
             if (map.getSource('route')) map.removeSource('route');
-            map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: route.geometry } });
+            const smoothed = { type: 'LineString', coordinates: smoothRouteCoordinates(route.geometry.coordinates) };
+            map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: smoothed } });
             addRouteLayersPreview();
             const coords = route.geometry.coordinates;
             const allPoints = fromCoord && toCoord ? [fromCoord, ...coords, toCoord] : coords;
@@ -2735,7 +2756,8 @@ out;`;
                 removeTrafficLightsLayer();
                 trafficLightsAlongRoute = [];
                 if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
-                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: chosenRoute.geometry } });
+                const smoothedGeometry = { type: 'LineString', coordinates: smoothRouteCoordinates(chosenRoute.geometry.coordinates) };
+                map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: smoothedGeometry } });
                 addRouteLayers();
                 (async () => {
                     try {
