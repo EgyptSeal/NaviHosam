@@ -1,0 +1,2971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EvNav-Hossam - EV Range & Navigation</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.19.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.19.0/mapbox-gl.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-dark: #0a0e17;
+            --bg-card: #121a2a;
+            --accent-blue: #00d4ff;
+            --accent-green: #00ff88;
+            --accent-orange: #ff9500;
+            --text-primary: #ffffff;
+            --text-secondary: #8b9dc3;
+            --border-glow: rgba(0, 212, 255, 0.3);
+        }
+        
+        body {
+            font-family: 'Outfit', 'Noto Sans Arabic', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Header - app name top center, high-tech */
+        .header {
+            padding: 12px 20px;
+            background: linear-gradient(180deg, rgba(10,14,23,0.98) 0%, rgba(18,26,42,0.6) 50%, transparent 100%);
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0,212,255,0.15);
+        }
+        .header-left { display: flex; align-items: center; }
+        .header-left-col { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+        .plan-route-header-btn { margin-top: 0; padding: 10px 18px; font-size: 0.9rem; }
+        .header-center { display: flex; justify-content: center; }
+        .header-right { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(0,212,255,0.3);
+        }
+        .header-actions { display: flex; align-items: center; gap: 12px; }
+        .icon-btn { background: rgba(0,212,255,0.2); border: 1px solid var(--border-glow); border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 1.1rem; }
+        .icon-btn:hover { background: rgba(0,212,255,0.3); }
+        
+        /* Search autocomplete dropdown */
+        .search-wrapper { position: relative; flex: 1; display: flex; align-items: center; gap: 6px; }
+        .search-wrapper .route-input { flex: 1; min-width: 0; }
+        .current-loc-btn {
+            flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--border-glow);
+            background: rgba(0,212,255,0.2); color: var(--accent-blue); cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; transition: all 0.2s;
+        }
+        .current-loc-btn:hover { background: rgba(0,212,255,0.35); transform: scale(1.05); }
+        .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 8px; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .search-dropdown-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid rgba(0,212,255,0.1); font-size: 0.9rem; }
+        .search-dropdown-item:hover { background: rgba(0,212,255,0.15); }
+        .search-dropdown-item:last-child { border-bottom: none; }
+        .search-dropdown-item .place-name { font-weight: 500; }
+        .search-dropdown-item .place-addr { font-size: 0.75rem; color: var(--text-secondary); }
+        .search-dropdown-item .place-name,
+        .search-dropdown-item .place-addr { font-family: 'Noto Sans Arabic', 'Outfit', sans-serif; }
+        .search-dropdown-item .suggestion-distance { font-size: 0.8rem; color: var(--accent-blue); margin-top: 4px; }
+        
+        /* Click mode buttons - high-tech style */
+        .click-mode-btns { display: flex; gap: 10px; margin-bottom: 10px; }
+        .click-mode-btn {
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,212,255,0.5);
+            background: linear-gradient(145deg, rgba(18,26,42,0.95), rgba(10,14,23,0.98));
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+            transition: all 0.25s ease;
+        }
+        .click-mode-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); box-shadow: 0 0 20px rgba(0,212,255,0.25); }
+        .click-mode-btn.active {
+            background: linear-gradient(145deg, rgba(0,212,255,0.35), rgba(0,153,204,0.4));
+            color: white;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 24px rgba(0,212,255,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+        
+        /* Start Navigation button */
+        .start-nav-btn { background: linear-gradient(135deg, var(--accent-green), #00cc6a); color: white; border: none; border-radius: 12px; padding: 14px 28px; font-weight: 700; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+        .start-nav-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,255,136,0.4); }
+        .start-nav-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        
+        /* Settings modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px; max-width: 400px; width: 90%; }
+        .modal h3 { color: var(--accent-blue); margin-bottom: 16px; font-size: 1.1rem; }
+        .icon-option { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-glow); border-radius: 8px; margin-bottom: 8px; cursor: pointer; }
+        .icon-option:hover { border-color: var(--accent-blue); }
+        .icon-option.selected { border-color: var(--accent-green); background: rgba(0,255,136,0.1); }
+        .icon-option .icon-preview { font-size: 1.8rem; }
+        
+        
+        
+        /* Main content: map always full size */
+        .main-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .map-container {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Left Panel - floating overlay above map */
+        .left-panel {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 420px;
+            max-width: calc(100vw - 40px);
+            background: linear-gradient(180deg, rgba(18,26,42,0.98), rgba(10,14,23,0.98));
+            border-right: 1px solid var(--border-glow);
+            overflow-y: auto;
+            padding: 20px;
+            z-index: 45;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s ease;
+            box-shadow: none;
+        }
+        .left-panel.open {
+            transform: translateX(0);
+            box-shadow: 8px 0 32px rgba(0,0,0,0.5);
+        }
+        .trip-setup-fab {
+            display: none;
+            position: fixed;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 40;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,212,255,0.4);
+        }
+        .left-panel:not(.open) ~ .trip-setup-fab { display: flex; align-items: center; justify-content: center; }
+        .save-go-btn {
+            width: 100%;
+            padding: 16px 24px;
+            margin-top: 20px;
+            background: linear-gradient(135deg, var(--accent-green), #00cc6a);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .save-go-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 24px rgba(0,255,136,0.4); }
+        
+        .panel-section {
+            margin-bottom: 24px;
+        }
+        
+        .panel-section h3 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Car selection grid */
+        .car-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .car-card {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .car-card:hover, .car-card.selected {
+            border-color: var(--accent-blue);
+            background: rgba(0, 212, 255, 0.15);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+        }
+        
+        .car-card .car-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+        .car-card .car-range { color: var(--accent-green); font-size: 1.1rem; font-weight: 700; }
+        .car-card .car-spec { font-size: 0.75rem; color: var(--text-secondary); }
+        
+        /* Slicers */
+        .slicer-group {
+            margin-bottom: 16px;
+        }
+        
+        .slicer-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        
+        .slicer-value {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+        
+        .slicer {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(0, 212, 255, 0.2);
+            outline: none;
+        }
+        
+        .slicer::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+        
+        /* Range display */
+        .range-display {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.1));
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .range-display .label { font-size: 0.8rem; color: var(--text-secondary); }
+        .range-display .value { font-size: 2.2rem; font-weight: 700; color: var(--accent-green); }
+        .range-display .sub { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+        
+        /* Map container */
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Map controls overlay – content starts below EvNav-Hossam header border */
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 72px 20px 16px;
+            background: linear-gradient(180deg, rgba(10,14,23,0.8) 0%, transparent 100%);
+            z-index: 10;
+            pointer-events: none;
+        }
+        .map-overlay > * { pointer-events: auto; }
+        
+        .route-inputs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .route-input {
+            flex: 1;
+            background: rgba(18, 26, 42, 0.9);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        
+        .route-input::placeholder { color: var(--text-secondary); opacity: 0.7; }
+        
+        .route-btn {
+            background: linear-gradient(135deg, var(--accent-blue), #0099cc);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .route-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0, 212, 255, 0.4); }
+        
+        .stops-section { margin-bottom: 10px; }
+        .stops-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+        .stops-label { font-size: 0.85rem; color: var(--text-secondary); }
+        .stops-btns { display: flex; gap: 6px; align-items: center; }
+        .add-stop-btn { padding: 6px 12px; font-size: 0.85rem; }
+        #clickStopBtn { padding: 6px 10px; font-size: 0.8rem; }
+        .stops-list { display: flex; flex-direction: column; gap: 6px; }
+        .stop-row { display: flex; align-items: center; gap: 6px; }
+        .stop-row .route-input { flex: 1; min-width: 0; padding: 8px 12px; font-size: 0.9rem; }
+        .stop-row .remove-stop-btn { flex-shrink: 0; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-glow); background: rgba(255,90,90,0.2); color: #ff6b6b; cursor: pointer; font-size: 1rem; line-height: 1; }
+        .stop-row .remove-stop-btn:hover { background: rgba(255,90,90,0.35); }
+        .route-actions-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+        .menu-reopen-btn {
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-glow);
+            background: rgba(18,26,42,0.9);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .menu-reopen-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+        .main-content.navigating .route-options { display: none !important; }
+        .main-content.navigating .route-actions-row { display: none !important; }
+        .main-content.navigating .route-inputs { display: none !important; }
+        .main-content.navigating .click-mode-btns { display: none !important; }
+        .main-content.navigating .stops-btns { display: none !important; }
+        .route-options {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .route-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+        
+        .route-option input { accent-color: var(--accent-blue); }
+        
+        /* Current speed display – well above HUD to avoid overlap */
+        .speed-gauges-container {
+            position: absolute;
+            bottom: 340px;
+            right: 24px;
+            z-index: 25;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        
+        .speed-display {
+            width: 80px;
+            height: 80px;
+            background: rgba(18, 26, 42, 0.95);
+            border: 3px solid var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        
+        .speed-display .speed-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            line-height: 1.2;
+        }
+        
+        .speed-display .speed-unit {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Nav instruction – turn tips, below header layout (no overlap with EvNav-Hossam) */
+        .nav-instruction {
+            margin-top: 8px;
+            margin-left: 0;
+            margin-right: 0;
+            position: relative;
+            z-index: 22;
+            background: linear-gradient(145deg, rgba(18,26,42,0.97), rgba(10,14,23,0.98));
+            border: 1px solid rgba(0,212,255,0.5);
+            border-radius: 19px;
+            padding: 24px 29px;
+            max-width: 384px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05), inset 0 1px 0 rgba(0,212,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        .nav-instruction .maneuver-icon {
+            width: 77px;
+            height: 77px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-instruction .maneuver-icon svg { width: 67px; height: 67px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 2px 6px rgba(0,212,255,0.5)); }
+        .nav-instruction .distance { color: var(--accent-blue); font-weight: 700; font-size: 1.32rem; letter-spacing: 0.5px; }
+        .nav-instruction .action { font-size: 1.44rem; font-weight: 600; margin-top: 7px; color: var(--text-primary); }
+        
+        .junction-view {
+            position: absolute;
+            left: 50%;
+            bottom: 140px;
+            transform: translateX(-50%);
+            z-index: 30;
+            background: rgba(18,26,42,0.96);
+            border: 2px solid var(--border-glow);
+            border-radius: 16px;
+            padding: 16px 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.2);
+            display: none;
+            max-width: 92vw;
+        }
+        .junction-view.visible { display: block; }
+        .junction-view .junction-drawing { width: 200px; height: 140px; margin: 0 auto 10px; display: block; }
+        .junction-view .junction-label { font-size: 1rem; font-weight: 600; color: var(--accent-blue); text-align: center; }
+        
+        /* Map nav controls: zoom, tilt, recenter - right middle */
+        .map-nav-controls {
+            position: absolute;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 25;
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            background: rgba(18,26,42,0.95);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .map-nav-controls.visible { display: flex; }
+        .map-nav-controls button {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(0,212,255,0.15);
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .map-nav-controls button:hover { background: rgba(0,212,255,0.3); transform: scale(1.05); }
+        .map-nav-controls button.recenter { background: linear-gradient(135deg, var(--accent-blue), #0099cc); color: white; font-size: 1rem; }
+        .stop-nav-floating {
+            position: absolute;
+            top: calc(50% - 168px);
+            right: 24px;
+            transform: translateY(-100%);
+            z-index: 35;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #ff5722, #e64a19);
+            color: white;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255,87,34,0.5);
+        }
+        .stop-nav-floating:hover { filter: brightness(1.1); }
+        .nav-instruction { display: flex; align-items: center; gap: 24px; }
+        
+        /* Bottom HUD – progress bar layout box at bottom; calculator above right 23% */
+        .hud-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(0deg, rgba(10, 14, 23, 0.98) 0%, rgba(10, 14, 23, 0.8) 70%, transparent 100%);
+            padding: 12px 24px 20px;
+            z-index: 20;
+        }
+        
+        .hud-calculator-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+        
+        /* Route Range Calculator – title one line; font size reduced by 2 */
+        .range-calculator-section {
+            width: 30%;
+            min-width: 180px;
+            max-width: 240px;
+            padding: 10px 12px;
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px solid var(--border-glow);
+            border-radius: 10px;
+        }
+        .range-calculator-section h4 {
+            font-size: 1.1rem;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .range-calc-result {
+            margin-top: 6px;
+            padding: 4px 0;
+            font-size: 1.1rem;
+        }
+        .range-calc-result span:last-child { font-size: 1.2rem; }
+        
+        /* Progress bar layout box – at bottom, own box */
+        .hud-progress-box {
+            background: rgba(18, 26, 42, 0.95);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            padding: 14px 18px 16px;
+            width: 100%;
+        }
+        
+        /* Distance text – top center of bar, different layout, high-tech */
+        .trip-progress-distance {
+            text-align: center;
+            margin-bottom: 8px;
+            font-family: 'Orbitron', 'Outfit', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: var(--accent-blue);
+            text-shadow: 0 0 24px rgba(0, 212, 255, 0.5), 0 2px 4px rgba(0,0,0,0.4);
+        }
+        
+        .trip-progress-section {
+            flex: 0 0 auto;
+            min-width: 0;
+        }
+        
+        .hud-progress-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .hud-progress-top .charge-display { min-width: 90px; flex-shrink: 0; }
+        .hud-progress-top .trip-progress-distance { flex: 1; margin-bottom: 0; }
+        .hud-progress-top .time-display { flex-shrink: 0; }
+        
+        .trip-progress-label {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        
+        .trip-progress-bar {
+            height: 12px;
+            background: rgba(0, 212, 255, 0.2);
+            border-radius: 6px;
+            position: relative;
+            overflow: visible;
+        }
+        
+        .trip-progress-red-zone {
+            position: absolute; top: 0; bottom: 0; right: 0;
+            background: #e53935;
+            border-radius: 0 6px 6px 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .trip-progress-fill {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        
+        .trip-progress-car {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 36px;
+            height: 36px;
+            background: var(--accent-orange);
+            border: 2px solid white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+            transition: left 0.3s ease;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .trip-progress-car:hover { transform: translate(-50%, -50%) scale(1.1); }
+        .trip-progress-5pct {
+            position: absolute; top: -3px; bottom: -3px; width: 6px; margin-left: -3px;
+            background: #e53935; border-radius: 0; z-index: 2; pointer-events: none;
+            box-shadow: 0 0 10px rgba(229,57,53,0.9);
+        }
+        .trip-progress-5pct::before {
+            content: '5%'; position: absolute; left: 50%; top: -18px; transform: translateX(-50%);
+            font-size: 0.7rem; font-weight: 700; color: #e53935; white-space: nowrap;
+        }
+        .trip-progress-charge-stop-dot {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 14px; height: 14px; border-radius: 50%;
+            background: #00ff88; border: 2px solid #0a0e17; z-index: 2;
+            box-shadow: 0 0 10px rgba(0,255,136,0.9);
+            pointer-events: none; display: none; margin-left: -7px;
+        }
+        .trip-progress-charge-icon {
+            position: absolute; top: 50%; transform: translate(-50%, -50%);
+            width: 28px; height: 28px; z-index: 3; pointer-events: none;
+            display: none; margin-left: -14px;
+        }
+        .trip-progress-charge-icon svg { width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(0,255,136,0.9)); }
+        
+        .demo-btn { background: linear-gradient(135deg, #9c27b0, #7b1fa2) !important; }
+        .stop-btn { background: linear-gradient(135deg, #ff5722, #e64a19) !important; }
+        
+        .car-icon-popover { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; background: var(--bg-card); border: 1px solid var(--border-glow); border-radius: 12px; padding: 12px; z-index: 30; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .car-icon-popover-title { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .car-icon-popover-icons { display: flex; gap: 8px; flex-wrap: wrap; }
+        .car-icon-popover-icons span { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; border-radius: 8px; border: 1px solid transparent; }
+        .car-icon-popover-icons span:hover { border-color: var(--accent-blue); background: rgba(0,212,255,0.2); }
+        .car-sprite-icon { flex-shrink: 0; display: inline-block; object-fit: contain; }
+        .car-marker-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+        .car-street-name-box {
+            margin-top: 4px;
+            padding: 4px 8px;
+            max-width: 120px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #fff;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Noto Sans Arabic', 'Outfit', sans-serif;
+            background: linear-gradient(145deg, rgba(18,26,42,0.98), rgba(8,12,20,0.98));
+            border: 1px solid rgba(0,212,255,0.5);
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+        
+        /* Charge display */
+        .charge-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+        
+        .charge-display .current-charge {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+        
+        .charge-display .end-charge {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .charge-display .end-charge-note {
+            font-size: 0.8rem;
+            color: var(--accent-green);
+        }
+        
+        .charge-display .label { font-size: 0.7rem; color: var(--text-secondary); }
+        
+        /* Time display */
+        .time-display {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            min-width: 70px;
+        }
+        
+        .range-calc-result {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+        }
+        .range-calc-result:first-of-type { border-top: none; }
+        .range-calc-result span:last-child { color: var(--accent-green); font-weight: 600; }
+        
+        /* Charging stations panel */
+        .charging-stations {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+        
+        .charging-station-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .charging-station-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--accent-green);
+        }
+        
+        .charging-station-item.selected {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.2);
+        }
+        
+        .charging-station-item .station-name { font-weight: 500; font-size: 0.9rem; }
+        .charging-station-item .station-power { font-size: 0.75rem; color: var(--accent-green); }
+        .charging-station-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent-green); cursor: pointer; flex-shrink: 0; }
+        .charging-station-item .station-row { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+        .wind-note { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        
+        /* Mode toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 4px;
+            background: rgba(18, 26, 42, 0.8);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-glow);
+        }
+        
+        .mode-btn {
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .mode-btn.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+        .header-charge-display {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 12px; border-radius: 8px;
+            background: rgba(0,255,136,0.12); border: 1px solid rgba(0,255,136,0.35);
+            font-size: 0.9rem; font-weight: 700; color: var(--accent-green);
+        }
+        .header-charge-icon { font-size: 1.1rem; filter: drop-shadow(0 0 6px rgba(0,255,136,0.5)); }
+        
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-content { flex-direction: column; }
+            .left-panel { width: 100%; max-height: 45vh; }
+            .speed-gauges-container { bottom: 250px; right: 12px; }
+            .speed-display { width: 65px; height: 65px; }
+            .speed-display .speed-value { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-left">
+                <div class="header-left-col">
+                    <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+                    <button class="route-btn plan-route-header-btn" id="planRouteBtn" title="Plan route from From/To below">Plan Route</button>
+                </div>
+            </div>
+            <div class="header-center"><div class="logo">EvNav-Hossam</div></div>
+            <div class="header-right">
+                <div class="header-charge-display" id="headerChargeDisplay" title="Estimated current charge">
+                    <span class="header-charge-icon" id="headerChargeIcon">🔋</span>
+                    <span class="header-charge-value" id="headerChargeValue">--%</span>
+                </div>
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="day">Day</button>
+                    <button class="mode-btn" data-mode="night">Night</button>
+                    <button class="mode-btn" data-mode="auto">Auto</button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <aside class="left-panel open" id="leftPanel">
+                <div class="panel-section">
+                    <h3>Select Your BYD EV</h3>
+                    <div class="car-grid" id="carGrid"></div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>Trip Parameters</h3>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Temperature: <span class="slicer-value" id="tempVal">20°C</span></div>
+                        <input type="range" class="slicer" id="tempSlicer" min="-10" max="45" value="20">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Passengers: <span class="slicer-value" id="passengersVal">1</span></div>
+                        <input type="range" class="slicer" id="passengersSlicer" min="1" max="7" value="1">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Trunk/Cargo Weight: <span class="slicer-value" id="weightVal">0 kg</span></div>
+                        <input type="range" class="slicer" id="weightSlicer" min="0" max="200" value="0">
+                    </div>
+                    <div class="slicer-group">
+                        <label class="route-option" style="margin-bottom:8px;"><input type="checkbox" id="acOn" checked> AC On (~1 kW; closer to outside temp = less drain)</label>
+                        <div class="slicer-label">AC Setting: <span class="slicer-value" id="acVal">23°C</span></div>
+                        <input type="range" class="slicer" id="acSlicer" min="18" max="28" value="23">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Starting Battery: <span class="slicer-value" id="startBatteryVal">100%</span></div>
+                        <input type="range" class="slicer" id="startBatterySlicer" min="20" max="100" value="100">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Target Charge at Arrival: <span class="slicer-value" id="targetChargeVal">40%</span></div>
+                        <input type="range" class="slicer" id="targetChargeSlicer" min="5" max="50" value="40">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Max Speed (km/h): <span class="slicer-value" id="maxSpeedVal">120</span></div>
+                        <input type="range" class="slicer" id="maxSpeedSlicer" min="60" max="160" value="120">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Driving Style: <span class="slicer-value" id="drivingStyleVal">Moderate</span></div>
+                        <input type="range" class="slicer" id="drivingStyleSlicer" min="0" max="2" value="1" step="1">
+                    </div>
+                    <div class="slicer-group wind-from-weather">
+                        <div class="slicer-label">Wind (from weather): <span class="slicer-value" id="windVal">-- km/h</span></div>
+                        <div class="wind-note">Updated every 10 min from route location</div>
+                    </div>
+                </div>
+                
+                <div class="range-display">
+                    <div class="label">Realistic Range (CLTC −25% ≈ EPA)</div>
+                    <div class="value" id="realisticRange">-- km</div>
+                    <div class="sub">CLTC: <span id="cltcRange">--</span> → EPA: <span id="epaRange">--</span></div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>Charging Stations on Route</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Plan a route first. EV stations along your route (from Mapbox &amp; OpenStreetMap) appear below. Tick one to add as a stop.</p>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Charge to add at stop: <span class="slicer-value" id="chargeToAddVal">20%</span></div>
+                        <input type="range" class="slicer" id="chargeToAddSlicer" min="10" max="80" value="20">
+                    </div>
+                    <div class="charging-stations" id="chargingStations"><p style="font-size:0.85rem;color:var(--text-secondary);">Plan a route to see EV chargers along the route. Click to add as a stop.</p></div>
+                </div>
+                <div class="panel-section">
+                    <h3>Demo</h3>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">Run a simulated drive along the route.</p>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Demo speed: <span class="slicer-value" id="demoSpeedVal">1x</span></div>
+                        <input type="range" class="slicer" id="demoSpeedSlicer" min="1" max="20" value="10">
+                        <div class="slicer-label" style="margin-top:12px;">Car speed (demo): <span class="slicer-value" id="demoCarSpeedVal">60 km/h</span></div>
+                        <input type="range" class="slicer" id="demoCarSpeedSlicer" min="20" max="160" value="60">
+                    </div>
+                    <button class="route-btn demo-btn" id="runDemoBtn" disabled style="width:100%;margin-bottom:8px;">▶ Run Demo</button>
+                    <button class="route-btn stop-btn" id="stopSimBtn" disabled style="display:none;width:100%;">⏹ Stop Demo</button>
+                </div>
+                <button class="save-go-btn" id="saveGoBtn">Save & Go to Map</button>
+            </aside>
+            <button class="trip-setup-fab" id="tripSetupFab" title="Open menu">☰</button>
+            
+            <div class="map-container">
+                <div id="map"></div>
+                
+                <div class="map-overlay">
+                    <div class="click-mode-btns">
+                        <button class="click-mode-btn" id="clickStartBtn">📍 Click map for Start</button>
+                        <button class="click-mode-btn" id="clickDestBtn">🎯 Click map for Destination</button>
+                    </div>
+                    <div class="route-inputs">
+                        <div class="search-wrapper">
+                            <input type="text" class="route-input" id="fromInput" placeholder="From: Current Location" autocomplete="off" dir="auto">
+                            <button type="button" class="current-loc-btn" id="fromCurrentLocBtn" title="Set start to current location address">📍</button>
+                            <div class="search-dropdown" id="fromDropdown"></div>
+                        </div>
+                        <div class="search-wrapper">
+                            <input type="text" class="route-input" id="toInput" placeholder="To: Enter destination" autocomplete="off" dir="auto">
+                            <button type="button" class="current-loc-btn" id="toCurrentLocBtn" title="Set destination to current location address">📍</button>
+                            <div class="search-dropdown" id="toDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="stops-section">
+                        <div class="stops-header">
+                            <span class="stops-label">Stops (optional)</span>
+                            <div class="stops-btns">
+                                <button type="button" class="menu-reopen-btn add-stop-btn" id="addStopBtn">+ Add stop</button>
+                                <button type="button" class="click-mode-btn" id="clickStopBtn" title="Click map to add a stop">📍 Pin on map</button>
+                            </div>
+                        </div>
+                        <div class="stops-list" id="stopsList"></div>
+                    </div>
+                    <div class="route-actions-row" id="routeActionsRow">
+                        <button class="menu-reopen-btn" id="menuReopenBtn" title="Open menu">☰ Menu</button>
+                        <button class="menu-reopen-btn" id="chargingReopenBtn" title="Charging stations">🔌 Charging</button>
+                    </div>
+                    <div class="route-options" id="routeOptionsRow">
+                        <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
+                        <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
+                    </div>
+                    <div class="nav-instruction" id="navInstruction" style="display: none;">
+                        <div class="maneuver-icon" id="navManeuverIcon"></div>
+                        <div>
+                            <div class="distance" id="navDistance" dir="auto">In 500 m</div>
+                            <div class="action" id="navAction" dir="auto">Turn right</div>
+                        </div>
+                    </div>
+                    <div class="junction-view" id="junctionView">
+                        <div class="junction-drawing" id="junctionDrawing"></div>
+                        <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                    </div>
+                </div>
+                
+                <button class="stop-nav-floating" id="stopNavFloating" style="display:none;" title="Stop Navigation">⏹ Stop</button>
+                
+                <div class="speed-gauges-container" id="speedGaugesContainer" style="display:none;">
+                    <div class="speed-display" id="speedDisplay">
+                        <span class="speed-value" id="speedValue">0</span>
+                        <span class="speed-unit">km/h</span>
+                    </div>
+                </div>
+                <div class="map-nav-controls" id="mapNavControls">
+                    <button type="button" id="navZoomIn" title="Zoom in">+</button>
+                    <button type="button" id="navZoomOut" title="Zoom out">−</button>
+                    <button type="button" id="navTiltUp" title="Tilt up">⌃</button>
+                    <button type="button" id="navTiltDown" title="Tilt down">⌄</button>
+                    <button type="button" class="recenter" id="navRecenter" title="Recenter on car">◎</button>
+                </div>
+                
+                <div class="hud-container">
+                    <div class="hud-calculator-row">
+                        <div class="range-calculator-section">
+                            <h4>Route Range Calculator</h4>
+                            <div class="range-calc-result">
+                                <span>Route distance:</span>
+                                <span id="routeDistance">0 km</span>
+                            </div>
+                            <div class="range-calc-result">
+                                <span>Sufficient range?</span>
+                                <span id="rangeSufficient">--</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hud-progress-box">
+                        <div class="hud-progress-top">
+                            <div class="charge-display">
+                                <span class="label">Charge</span>
+                                <span class="current-charge" id="currentCharge">100%</span>
+                                <span class="end-charge">~<span id="endCharge">22</span>% at arrival<span id="endChargeNote" class="end-charge-note"></span></span>
+                            </div>
+                            <div class="trip-progress-distance" id="tripProgressText">0 km / 0 km</div>
+                            <div class="time-display" id="hudTime">--:--</div>
+                        </div>
+                        <div class="trip-progress-label">
+                            <span id="tripTimeText">0 min</span>
+                        </div>
+                        <div class="trip-progress-section">
+                            <div class="trip-progress-bar">
+                                <div class="trip-progress-red-zone" id="tripProgressRedZone" style="display: none; left: 0%;"></div>
+                                <div class="trip-progress-fill" id="tripProgressFill" style="width: 0%"></div>
+                                <div class="trip-progress-charge-stop-dot" id="tripProgressChargeStopDot" style="display: none; left: 0%;" title="Charging stop"></div>
+                                <div class="trip-progress-5pct" id="tripProgress5pct" style="display: none;" title="Battery reaches 5% here"></div>
+                                <div class="trip-progress-charge-icon" id="tripProgressChargeIcon" style="display: none; left: 0%;" title="Charge here (5%)"></div>
+                                <div class="trip-progress-car" id="tripProgressCar" style="left: 0%" title="Click to change icon">🚗</div>
+                            </div>
+                            <div class="car-icon-popover" id="carIconPopover" style="display:none;">
+                                <div class="car-icon-popover-title">Choose icon</div>
+                                <div class="car-icon-popover-icons" id="carIconPopoverIcons"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Modal -->
+        <div class="modal-overlay" id="settingsModal">
+            <div class="modal">
+                <h3>⚙️ Navigation Settings</h3>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:16px;">Choose your navigation icon:</p>
+                <div id="iconOptions"></div>
+                <div style="margin-top:16px;">
+                    <label class="route-option"><input type="checkbox" id="audioGuidance"> Audio guidance</label>
+                </div>
+                <div style="margin-top:12px;">
+                    <label style="font-size:0.85rem;color:var(--text-secondary);">Voice (AI-style):</label>
+                    <select id="voiceSelect" style="width:100%;margin-top:6px;padding:10px;background:var(--bg-card);border:1px solid var(--border-glow);border-radius:8px;color:var(--text-primary);">
+                        <option value="">Default</option>
+                    </select>
+                </div>
+                <button class="route-btn" style="margin-top:16px;width:100%;" id="closeSettingsBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const MAPBOX_TOKEN = 'pk.eyJ1IjoiaG9zc2FtaGVnYXppODUiLCJhIjoiY21tN3YxMGFtMHJqcTJwcjFjejMxM2RzZCJ9.vpxr16H3Rj31KkVQ6l3kFw';
+        const MAP_STYLE_DAY = 'mapbox://styles/hossamhegazi85/cmm6weaem003b01ryhf3p4bcp';
+        const MAP_STYLE_NIGHT = 'mapbox://styles/hossamhegazi85/cmm7v9r6q003h01qy02y80t01';
+        
+        // BYD EV Cars - CLTC range in km
+        const BYD_CARS = [
+            { id: 'atto3', name: 'Atto 3', cltc: 510, battery: 60.48, consumption: 14.5 },
+            { id: 'songplus', name: 'Song Plus', cltc: 605, battery: 72, consumption: 14.8 },
+            { id: 'songl', name: 'Song L EV', cltc: 662, battery: 87.04, consumption: 14.2 },
+            { id: 'dolphin', name: 'Dolphin', cltc: 427, battery: 44.9, consumption: 12.5 },
+            { id: 'seal', name: 'Seal', cltc: 570, battery: 61.4, consumption: 13.5 },
+            { id: 'han', name: 'Han EV', cltc: 605, battery: 85.4, consumption: 15.1 }
+        ];
+        
+        // State
+        let map, selectedCar = BYD_CARS[2], currentRoute = null, routeCoordinates = [];
+        let chargingStations = [], selectedChargingStations = [];
+        let trafficLightsAlongRoute = [];
+        let simulatedSpeed = 0, simulatedProgress = 0, simulatedCharge = 100;
+        let mapStyleMode = 'auto';
+        let currentMapStyle = null;
+        let isNavigating = false;
+        let selectedNavIcon = 'car-black';
+        let mapClickMode = null; // 'start' | 'destination' | 'stop' | null
+        let fromCoordManual = null, toCoordManual = null;
+        let carMarker = null;
+        let startMarker = null;
+        let endMarker = null;
+        let waypointMarkers = [];
+        let chargingPinMarkers = [];
+        let lastRouteUserStopsCount = 0;
+        let lastRouteChargingAdds = [];
+        let routeChargingStopKm = 0;
+        let routeChargingAddPct = 0;
+        
+        const NAV_ICONS = { 'car-black': 'car-black', 'car-blue': 'car-blue', 'car-white': 'car-white', 'car-suv-white': 'car-suv-white' };
+        
+        // CLTC/WLTP to EPA: −25% (multiply by 0.75) for comparable EPA-style range
+        const CLTC_TO_EPA = 0.75;
+        
+        let isDemoMode = false;
+        let isRealNav = false;
+        let gpsWatchId = null;
+        let lastGpsPos = null;
+        let lastGpsTime = 0;
+        
+        // Temperature impact: ~1% per 5°C from 20°C baseline
+        function tempImpact(temp) {
+            const diff = temp - 20;
+            return 1 - (diff * 0.02); // 2% per 10°C
+        }
+        
+        // Weight impact: ~1% per 50kg
+        function weightImpact(kg) {
+            return 1 - (kg / 5000); // Rough: 100kg ≈ 2%
+        }
+        
+        // Passenger impact: ~2% per passenger
+        function passengerImpact(count) {
+            return 1 - ((count - 1) * 0.02);
+        }
+        
+        // AC impact: ~1 kW when set far from outside temp; closer to outside = less drain
+        function acImpact(acTemp, extTemp) {
+            const diff = Math.abs(acTemp - extTemp);
+            const closeness = Math.max(0, 1 - diff / 10);
+            return 1 - 0.12 * (1 - closeness);
+        }
+        
+        // Weather: extreme hot (>35) or cold (<5) affects range
+        function weatherImpact(temp) {
+            if (temp > 35) return 1 - ((temp - 35) * 0.015);
+            if (temp < 5) return 1 - ((5 - temp) * 0.02);
+            return 1;
+        }
+        
+        // Wind: headwind reduces range, tailwind helps
+        function windImpact(windKmh) {
+            return 1 - (windKmh * 0.003); // ~0.3% per km/h headwind
+        }
+        
+        // Driving behavior: 0=eco, 1=moderate, 2=aggressive
+        function drivingBehaviorImpact(style) {
+            return [1, 0.92, 0.82][style] || 0.92;
+        }
+        
+        // Max speed: higher max = more consumption
+        function maxSpeedImpact(maxSpeed) {
+            return 1 - ((maxSpeed - 80) * 0.002);
+        }
+        
+        function calculateRealisticRange() {
+            const temp = parseInt(document.getElementById('tempSlicer').value);
+            const passengers = parseInt(document.getElementById('passengersSlicer').value);
+            const weight = parseInt(document.getElementById('weightSlicer').value);
+            const ac = parseInt(document.getElementById('acSlicer').value);
+            const wind = typeof currentWindKmh === 'number' ? currentWindKmh : 0;
+            const drivingStyle = parseInt(document.getElementById('drivingStyleSlicer')?.value || 1);
+            const maxSpeed = parseInt(document.getElementById('maxSpeedSlicer')?.value || 120);
+            
+            let baseRange = selectedCar.cltc * CLTC_TO_EPA;
+            baseRange *= tempImpact(temp);
+            baseRange *= weightImpact(weight);
+            baseRange *= passengerImpact(passengers);
+            if (document.getElementById('acOn')?.checked) baseRange *= acImpact(ac, temp);
+            baseRange *= weatherImpact(temp);
+            baseRange *= windImpact(Math.abs(wind));
+            baseRange *= drivingBehaviorImpact(drivingStyle);
+            baseRange *= maxSpeedImpact(maxSpeed);
+            
+            const epaEquiv = Math.round(selectedCar.cltc * CLTC_TO_EPA);
+            const realistic = Math.round(baseRange);
+            
+            document.getElementById('realisticRange').textContent = realistic + ' km';
+            document.getElementById('cltcRange').textContent = selectedCar.cltc + ' km';
+            document.getElementById('epaRange').textContent = epaEquiv + ' km';
+            
+            return realistic;
+        }
+        
+        function getRouteLinePaint() {
+            const hour = new Date().getHours();
+            const isDark = mapStyleMode === 'night' || (mapStyleMode === 'auto' && (hour < 6 || hour >= 18));
+            return {
+                color: isDark ? '#5ce1ff' : '#5dd4ff',
+                width: 14,
+                glowWidth: 32,
+                glowColor: isDark ? 'rgba(92,225,255,0.75)' : 'rgba(93,212,255,0.65)'
+            };
+        }
+        
+        function addRouteLayers() {
+            if (!map.getSource('route') || !currentRoute) return;
+            const paint = getRouteLinePaint();
+            if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+            if (map.getLayer('route-layer')) map.removeLayer('route-layer');
+            map.addLayer({
+                id: 'route-layer-glow',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
+                paint: {
+                    'line-color': paint.glowColor,
+                    'line-width': paint.glowWidth,
+                    'line-blur': 14,
+                    'line-opacity': 1
+                }
+            });
+            map.addLayer({
+                id: 'route-layer',
+                type: 'line',
+                source: 'route',
+                layout: { 'line-join': 'round', 'line-cap': 'round', 'line-round-limit': 1 },
+                paint: {
+                    'line-color': paint.color,
+                    'line-width': paint.width
+                }
+            });
+        }
+        
+        // Update map style based on time (6am-6pm = day)
+        function updateMapStyle() {
+            if (!map) return;
+            const hour = new Date().getHours();
+            let useNight = mapStyleMode === 'night' || (mapStyleMode === 'auto' && (hour < 6 || hour >= 18));
+            const newStyle = useNight ? MAP_STYLE_NIGHT : MAP_STYLE_DAY;
+            if (currentMapStyle === newStyle) return;
+            currentMapStyle = newStyle;
+            map.setStyle(newStyle);
+            map.once('style.load', () => {
+                add3DBuildings();
+                if (currentRoute && routeCoordinates.length) {
+                    map.addSource('route', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry } });
+                    addRouteLayers();
+                    const fromCoord = routeCoordinates[0], toCoord = routeCoordinates[routeCoordinates.length - 1];
+                    if (startMarker) startMarker.remove();
+                    const startEl = document.createElement('div');
+                    startEl.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="#00ff88"/><circle cx="12" cy="12" r="5" fill="#0a0e17"/></svg>';
+                    startMarker = new mapboxgl.Marker({ element: startEl, anchor: 'bottom' }).setLngLat(fromCoord).addTo(map);
+                    if (endMarker) endMarker.remove();
+                    const endEl = document.createElement('div');
+                    endEl.innerHTML = '<svg width="36" height="36" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24c0-6.6-5.4-12-12-12z" fill="#ff9500"/><circle cx="12" cy="12" r="5" fill="#0a0e17"/></svg>';
+                    endMarker = new mapboxgl.Marker({ element: endEl, anchor: 'bottom' }).setLngLat(toCoord).addTo(map);
+                    if (chargingStations.length > 0) {
+                        map.addSource('markers', { type: 'geojson', data: { type: 'FeatureCollection', features: chargingStations.map(s => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lon, s.lat] }, properties: {} })) } });
+                        map.addLayer({ id: 'markers-layer', type: 'circle', source: 'markers', paint: { 'circle-radius': 6, 'circle-color': '#00d4ff' } });
+                    }
+                    if (trafficLightsAlongRoute.length > 0) addTrafficLightsLayer(trafficLightsAlongRoute);
+                }
+            });
+        }
+        
+        function add3DBuildings() {
+            if (!map.getLayer('add-3d-buildings')) {
+                try {
+                    const layers = map.getStyle().layers;
+                    const labelLayerId = layers.find(l => l.type === 'symbol' && l.layout && l.layout['text-field'])?.id;
+                    if (labelLayerId) {
+                        map.addLayer({
+                            id: 'add-3d-buildings',
+                            source: 'composite',
+                            'source-layer': 'building',
+                            filter: ['==', 'extrude', 'true'],
+                            type: 'fill-extrusion',
+                            minzoom: 15,
+                            paint: {
+                                'fill-extrusion-color': '#4a5568',
+                                'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'height']],
+                                'fill-extrusion-base': ['interpolate', ['linear'], ['zoom'], 15, 0, 15.05, ['get', 'min_height']],
+                                'fill-extrusion-opacity': 0.6
+                            }
+                        }, labelLayerId);
+                    }
+                } catch (e) {}
+            }
+        }
+        
+        
+        // Initialize car grid
+        function initCarGrid() {
+            const grid = document.getElementById('carGrid');
+            grid.innerHTML = BYD_CARS.map(car => `
+                <div class="car-card" data-id="${car.id}">
+                    <div class="car-name">BYD ${car.name}</div>
+                    <div class="car-range">${car.cltc} km</div>
+                    <div class="car-spec">CLTC | ${car.battery} kWh</div>
+                </div>
+            `).join('');
+            
+            grid.querySelector('[data-id="' + selectedCar.id + '"]').classList.add('selected');
+            grid.querySelectorAll('.car-card').forEach(el => {
+                el.addEventListener('click', () => {
+                    grid.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'));
+                    el.classList.add('selected');
+                    selectedCar = BYD_CARS.find(c => c.id === el.dataset.id);
+                    calculateRealisticRange();
+                });
+            });
+        }
+        
+        const DRIVING_STYLES = ['Eco', 'Moderate', 'Aggressive'];
+        // Slicer handlers
+        function initSlicers() {
+            const slicers = [
+                'tempSlicer','passengersSlicer','weightSlicer','acSlicer','startBatterySlicer',
+                'targetChargeSlicer','maxSpeedSlicer','drivingStyleSlicer','chargeToAddSlicer','demoSpeedSlicer','demoCarSpeedSlicer'
+            ];
+            slicers.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const valEl = document.getElementById(id.replace('Slicer','Val'));
+                const labels = {
+                    tempSlicer: v => v + '°C',
+                    passengersSlicer: v => v,
+                    weightSlicer: v => v + ' kg',
+                    acSlicer: v => v + '°C',
+                    startBatterySlicer: v => v + '%',
+                    targetChargeSlicer: v => v + '%',
+                    maxSpeedSlicer: v => v + ' km/h',
+                    drivingStyleSlicer: v => DRIVING_STYLES[parseInt(v)] || 'Moderate',
+                    chargeToAddSlicer: v => { renderChargingStations(); return v + '%'; },
+                    demoSpeedSlicer: v => v + 'x',
+                    demoCarSpeedSlicer: v => v + ' km/h'
+                };
+                el.addEventListener('input', () => {
+                    if (valEl) valEl.textContent = labels[id](el.value);
+                    calculateRealisticRange();
+                    if (id === 'startBatterySlicer') {
+                        simulatedCharge = parseInt(el.value);
+                        const ce = document.getElementById('currentCharge');
+                        if (ce) ce.textContent = simulatedCharge + '%';
+                        const hcv = document.getElementById('headerChargeValue');
+                        if (hcv) hcv.textContent = simulatedCharge + '%';
+                        if (currentRoute && currentRoute.distance) {
+                            const distKm = currentRoute.distance / 1000;
+                            const consumptionPerKm = selectedCar.consumption || 15;
+                            const batteryUsedPct = (distKm * (consumptionPerKm / 100) / selectedCar.battery) * 100;
+                            update5PctMarker(distKm, simulatedCharge, batteryUsedPct);
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Map initialization
+        mapboxgl.accessToken = MAPBOX_TOKEN;
+        const initHour = new Date().getHours();
+        const initNight = initHour < 6 || initHour >= 18;
+        currentMapStyle = initNight ? MAP_STYLE_NIGHT : MAP_STYLE_DAY;
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: currentMapStyle,
+            center: [31.2, 30.0],
+            zoom: 14 + 0.4,
+            pitch: 45,
+            bearing: -17,
+            antialias: true
+        });
+        
+        map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+        map.addControl(new mapboxgl.GeolocateControl({ positionOptions: { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }, trackUserLocation: true, showUserHeading: true }), 'top-right');
+        
+        map.on('load', () => {
+            add3DBuildings();
+            updateMapStyle();
+            setDefaultStartToCurrentLocation();
+            fetchWind(30, 31);
+            const planBtn = document.getElementById('planRouteBtn');
+            if (planBtn) planBtn.disabled = false;
+            const sb = document.getElementById('startBatterySlicer');
+            const hcv = document.getElementById('headerChargeValue');
+            if (hcv && sb) hcv.textContent = sb.value + '%';
+        });
+        
+        function setDefaultStartToCurrentLocation() {
+            if (!navigator.geolocation || !map) return;
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lng = pos.coords.longitude, lat = pos.coords.latitude;
+                    map.flyTo({ center: [lng, lat], zoom: 14 + 0.4, duration: 1500 });
+                    const fromInput = document.getElementById('fromInput');
+                    if (fromInput && (!fromInput.value || fromInput.value === fromInput.placeholder)) {
+                        fromInput.value = 'Current Location';
+                        fromInput.placeholder = 'From: Current Location';
+                    }
+                    fetchWind(lat, lng);
+                },
+                () => {},
+                { enableHighAccuracy: true, maximumAge: 60000, timeout: 10000 }
+            );
+        }
+        
+        // Mode toggle
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                mapStyleMode = btn.dataset.mode;
+                updateMapStyle();
+            });
+        });
+        
+        // Geocode – bias to Egypt (EG) and Cairo proximity so POIs (e.g. Nile Ritz-Carlton) are found
+        const GEOCODER_COUNTRY = 'EG';
+        const CAIRO_PROXIMITY = '31.2357,30.0444';
+        function getProximityForSearch() {
+            if (lastGpsPos != null) return `${lastGpsPos.lng},${lastGpsPos.lat}`;
+            if (typeof map !== 'undefined' && map && map.getCenter) {
+                const c = map.getCenter();
+                if (c && c.lng != null && c.lat != null) return `${c.lng},${c.lat}`;
+            }
+            return CAIRO_PROXIMITY;
+        }
+        function getCurrentPositionForSearch() {
+            const p = getProximityForSearch();
+            const parts = p.split(',');
+            if (parts.length >= 2) {
+                const lng = parseFloat(parts[0]), lat = parseFloat(parts[1]);
+                if (!isNaN(lng) && !isNaN(lat)) return [lng, lat];
+            }
+            return null;
+        }
+        function formatDistanceFromKm(km) {
+            if (km >= 1) return km.toFixed(1) + ' km';
+            return Math.round(km * 1000) + ' m';
+        }
+        async function geocodeOne(query, country, limit) {
+            const proximity = getProximityForSearch();
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=${limit || 10}&proximity=${proximity}` + (country ? `&country=${country}` : '');
+            const res = await fetch(url);
+            const data = await res.json();
+            return data.features || [];
+        }
+        async function geocode(query) {
+            let features = await geocodeOne(query, GEOCODER_COUNTRY, 10);
+            if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
+                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 10);
+            }
+            if (features.length === 0) {
+                features = await geocodeOne(query, '', 10);
+                if (features.length > 0) {
+                    const inEgypt = features.filter(f => (f.context && f.context.find(c => (c.id || '').startsWith('country'))?.text === 'Egypt') || (f.place_type && f.place_type.includes('country') && f.text === 'Egypt'));
+                    if (inEgypt.length) features = inEgypt;
+                }
+            }
+            return features[0]?.center || null;
+        }
+        
+        // Geocode autocomplete – Egypt bias; retry with "Cairo Egypt" if no results so hotels (e.g. Carlton Nile) are found
+        let geocodeDebounce;
+        async function geocodeAutocomplete(query, callback) {
+            if (!query || query.length < 2) { callback([]); return; }
+            let features = await geocodeOne(query, GEOCODER_COUNTRY, 12);
+            if (features.length === 0 && !/cairo|egypt|مصر|القاهرة/i.test(query)) {
+                features = await geocodeOne((query + ' Cairo Egypt').trim(), GEOCODER_COUNTRY, 12);
+            }
+            if (features.length === 0) {
+                features = await geocodeOne(query, '', 12);
+                const inEgypt = features.filter(f => {
+                    const ctx = f.context && f.context.find(c => (c.id || '').startsWith('country'));
+                    return ctx && ctx.text === 'Egypt';
+                });
+                if (inEgypt.length) features = inEgypt;
+            }
+            callback(features);
+        }
+        
+        function setupSearchAutocomplete(inputId, dropdownId) {
+            const input = document.getElementById(inputId);
+            const dropdown = document.getElementById(dropdownId);
+            input.addEventListener('input', () => {
+                if (inputId === 'fromInput') fromCoordManual = null;
+                else toCoordManual = null;
+                updateStartEndPinsFromCoords();
+                clearTimeout(geocodeDebounce);
+                const q = input.value.trim();
+                if (q.length < 2) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+                geocodeDebounce = setTimeout(() => {
+                    const ref = getCurrentPositionForSearch();
+                    geocodeAutocomplete(q, (features) => {
+                        if (features.length === 0) { dropdown.innerHTML = ''; dropdown.style.display = 'none'; return; }
+                        dropdown.innerHTML = features.map(f => {
+                            const [lng, lat] = f.center || [0, 0];
+                            const distStr = ref ? formatDistanceFromKm(distHaversine(ref[1], ref[0], lat, lng)) : '';
+                            const distHtml = distStr ? `<div class="suggestion-distance">${distStr} from current location</div>` : '';
+                            return `
+                            <div class="search-dropdown-item" data-lon="${lng}" data-lat="${lat}" data-name="${(f.place_name || '').replace(/"/g,'&quot;')}">
+                                <div class="place-name" dir="auto">${f.text || f.place_name}</div>
+                                <div class="place-addr" dir="auto">${f.place_name || ''}</div>
+                                ${distHtml}
+                            </div>
+                        `;
+                        }).join('');
+                        dropdown.style.display = 'block';
+                        dropdown.querySelectorAll('.search-dropdown-item').forEach(item => {
+                            item.addEventListener('click', () => {
+                                input.value = item.dataset.name;
+                                dropdown.innerHTML = '';
+                                dropdown.style.display = 'none';
+                                if (inputId === 'fromInput') fromCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
+                                else toCoordManual = [parseFloat(item.dataset.lon), parseFloat(item.dataset.lat)];
+                                updateStartEndPinsFromCoords();
+                            });
+                        });
+                    });
+                }, 300);
+            });
+            input.addEventListener('blur', () => setTimeout(() => { dropdown.style.display = 'none'; }, 200));
+        }
+        
+        // Reverse geocode for map click – Egypt bias
+        async function reverseGeocode(lng, lat) {
+            const res = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1&country=${GEOCODER_COUNTRY}`);
+            const data = await res.json();
+            return data.features?.[0]?.place_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        }
+        
+        function setCurrentLocationToInput(inputId) {
+            const input = document.getElementById(inputId);
+            if (!input || !navigator.geolocation) return;
+            input.placeholder = 'Getting location…';
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const lng = pos.coords.longitude, lat = pos.coords.latitude;
+                    try {
+                        const address = await reverseGeocode(lng, lat);
+                        input.value = address;
+                        input.placeholder = inputId === 'fromInput' ? 'From: Current Location' : 'To: Enter destination';
+                        if (inputId === 'fromInput') fromCoordManual = [lng, lat];
+                        else toCoordManual = [lng, lat];
+                        updateStartEndPinsFromCoords();
+                    } catch (e) {
+                        input.value = inputId === 'fromInput' ? 'Current Location' : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                        input.placeholder = inputId === 'fromInput' ? 'From: Current Location' : 'To: Enter destination';
+                        if (inputId === 'fromInput') fromCoordManual = [lng, lat];
+                        else toCoordManual = [lng, lat];
+                        updateStartEndPinsFromCoords();
+                    }
+                },
+                () => {
+                    input.placeholder = inputId === 'fromInput' ? 'From: Current Location' : 'To: Enter destination';
+                },
+                { enableHighAccuracy: true, maximumAge: 60000, timeout: 10000 }
+            );
+        }
+        
+        // Get directions (with traffic + maxspeed)
+        async function getDirections(from, to, waypoints = []) {
+            const coords = [from, ...waypoints, to].map(c => `${c[0]},${c[1]}`).join(';');
+            const avoid = document.getElementById('avoidTolls').checked ? '&exclude=toll' : '';
+            const profile = 'mapbox/driving-traffic';
+            const url = `https://api.mapbox.com/directions/v5/${profile}/${coords}?geometries=geojson&overview=full&steps=true&annotations=maxspeed,congestion${avoid}&access_token=${MAPBOX_TOKEN}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.routes && data.routes[0]) {
+                return data.routes[0];
+            }
+            throw new Error('No route found');
+        }
+        
+        function parseMapboxEvStations(data) {
+            const stations = [];
+            (data.features || []).forEach(f => {
+                const coords = f.geometry?.coordinates;
+                if (!coords || coords.length < 2) return;
+                const lon = coords[0], lat = coords[1];
+                const loc = f.properties?.location || {};
+                const name = loc.name || 'EV Charger';
+                const evses = loc.evses || [];
+                let maxPower = 0;
+                evses.forEach(evse => {
+                    (evse.connectors || []).forEach(c => {
+                        const p = c.max_electric_power;
+                        if (p && p > maxPower) maxPower = p;
+                    });
+                });
+                const power = maxPower >= 1000 ? (maxPower / 1000).toFixed(1) + ' kW' : (maxPower ? maxPower + ' W' : '50 kW');
+                stations.push({
+                    id: 'mapbox_ev_' + (loc.id || lon + '_' + lat).replace(/[^a-z0-9_-]/gi, '_'),
+                    name,
+                    operator: (loc.operator?.name || '').toLowerCase(),
+                    lat, lon,
+                    power
+                });
+            });
+            return stations;
+        }
+        function parseOverpassElements(elements) {
+            const stations = [];
+            (elements || []).forEach(el => {
+                const lat = el.lat || el.center?.lat;
+                const lon = el.lon || el.center?.lon;
+                if (lat && lon) {
+                    let power = el.tags?.capacity || el.tags?.['socket:output'] || el.tags?.output || el.tags?.voltage || '50';
+                    if (typeof power === 'number') power = power + ' kW';
+                    else if (!/kW|W$/i.test(String(power))) power = String(power).replace(/\s*$/, '') + ' kW';
+                    if (!power || power === ' kW') power = '50 kW';
+                    stations.push({
+                        id: 'osm_' + el.id + '_' + el.type,
+                        name: el.tags?.name || 'Charging Station',
+                        operator: (el.tags?.operator || '').toLowerCase(),
+                        lat, lon,
+                        power
+                    });
+                }
+            });
+            return stations;
+        }
+        async function overpassChargingStations(bbox) {
+            const [minLon, minLat, maxLon, maxLat] = bbox;
+            const query = `[out:json][timeout:30];
+(node["amenity"="charging_station"](${minLat},${minLon},${maxLat},${maxLon});
+ way["amenity"="charging_station"](${minLat},${minLon},${maxLat},${maxLon}););
+out center;`;
+            const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+            for (const base of endpoints) {
+                try {
+                    const res = await fetch(base, { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    return parseOverpassElements(data.elements || []);
+                } catch (e) {}
+            }
+            return [];
+        }
+        async function overpassChargingStationsFallback(bbox) {
+            const [minLon, minLat, maxLon, maxLat] = bbox;
+            const query = `[out:json][timeout:25];
+(node["amenity"="charging_station"](${minLat},${minLon},${maxLat},${maxLon}); way["amenity"="charging_station"](${minLat},${minLon},${maxLat},${maxLon}););
+out center;`;
+            const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+            for (const base of endpoints) {
+                try {
+                    const res = await fetch(base, { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    return parseOverpassElements(data.elements || []);
+                } catch (e) {}
+            }
+            return [];
+        }
+        async function overpassTrafficSignals(bbox) {
+            const [minLon, minLat, maxLon, maxLat] = bbox;
+            const query = `[out:json][timeout:25];
+node["highway"="traffic_signals"](${minLat},${minLon},${maxLat},${maxLon});
+out;`;
+            const endpoints = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+            for (const base of endpoints) {
+                try {
+                    const res = await fetch(base, { method: 'POST', body: 'data=' + encodeURIComponent(query) });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    return (data.elements || []).map(el => ({ lat: el.lat, lon: el.lon }));
+                } catch (e) {}
+            }
+            return [];
+        }
+        async function fetchTrafficLightsAlongRoute(routeCoords) {
+            if (!routeCoords || routeCoords.length < 2) return [];
+            const lons = routeCoords.map(c => c[0]), lats = routeCoords.map(c => c[1]);
+            const minLon = Math.min(...lons), maxLon = Math.max(...lons), minLat = Math.min(...lats), maxLat = Math.max(...lats);
+            const padding = 0.01;
+            const bbox = [minLon - padding, minLat - padding, maxLon + padding, maxLat + padding];
+            const points = await overpassTrafficSignals(bbox);
+            return points.filter(p => pointNearRoute([p.lon, p.lat], routeCoords, TRAFFIC_LIGHT_NEAR_ROUTE_KM));
+        }
+        function addTrafficLightsLayer(points) {
+            if (!map || !points.length) return;
+            if (map.getLayer('traffic-lights-layer')) map.removeLayer('traffic-lights-layer');
+            if (map.getSource('traffic-lights')) map.removeSource('traffic-lights');
+            const features = points.map(p => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [p.lon, p.lat] }, properties: {} }));
+            map.addSource('traffic-lights', { type: 'geojson', data: { type: 'FeatureCollection', features } });
+            map.addLayer({
+                id: 'traffic-lights-layer',
+                type: 'circle',
+                source: 'traffic-lights',
+                paint: {
+                    'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 4, 18, 8],
+                    'circle-color': '#ffc107',
+                    'circle-stroke-width': 1.5,
+                    'circle-stroke-color': '#333'
+                }
+            });
+        }
+        function removeTrafficLightsLayer() {
+            if (!map) return;
+            if (map.getLayer('traffic-lights-layer')) map.removeLayer('traffic-lights-layer');
+            if (map.getSource('traffic-lights')) map.removeSource('traffic-lights');
+        }
+        async function fetchChargingStations(bbox) {
+            const [minLon, minLat, maxLon, maxLat] = bbox;
+            const centerLat = (minLat + maxLat) / 2;
+            const centerLon = (minLon + maxLon) / 2;
+            const distKm = Math.min(150, Math.max(40, Math.round(Math.sqrt(Math.pow((maxLat - minLat) * 111, 2) + Math.pow((maxLon - minLon) * 111 * Math.cos(centerLat * Math.PI / 180), 2)) + 40)));
+            for (let attempt = 0; attempt < 2; attempt++) {
+                try {
+                    const url = `https://api.mapbox.com/ev/v1/locations?access_token=${MAPBOX_TOKEN}&latitude=${centerLat}&longitude=${centerLon}&distance=${distKm}&limit=200`;
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        const data = await res.json();
+                        const stations = parseMapboxEvStations(data);
+                        if (stations.length > 0) return stations;
+                    }
+                } catch (e) {}
+            }
+            const overpass = await overpassChargingStations(bbox);
+            if (overpass.length > 0) return overpass;
+            return await overpassChargingStationsFallback(bbox);
+        }
+        function bboxFromRouteSegment(routeCoords, startIdx, endIdx) {
+            const slice = routeCoords.slice(startIdx, endIdx + 1);
+            const lons = slice.map(c => c[0]), lats = slice.map(c => c[1]);
+            const margin = 0.08;
+            return [Math.min(...lons) - margin, Math.min(...lats) - margin, Math.max(...lons) + margin, Math.max(...lats) + margin];
+        }
+        async function fetchChargingStationsAlongRoute(routeCoords) {
+            if (!routeCoords || routeCoords.length < 2) return [];
+            const lons = routeCoords.map(c => c[0]), lats = routeCoords.map(c => c[1]);
+            const margin = 0.06;
+            const bbox = [Math.min(...lons) - margin, Math.min(...lats) - margin, Math.max(...lons) + margin, Math.max(...lats) + margin];
+            try {
+                return await fetchChargingStations(bbox);
+            } catch (e) {
+                return [];
+            }
+        }
+        
+        let currentWindKmh = 0;
+        let windFetchInterval = null;
+        
+        // Check if point is within maxDistKm of route line
+        const TRAFFIC_LIGHT_NEAR_ROUTE_KM = 0.04;
+        function pointNearRoute(point, routeCoords, maxDistKm = 15) {
+            const R = 6371; // Earth radius km
+            for (let i = 0; i < routeCoords.length - 1; i++) {
+                const d = distHaversine(point[1], point[0], routeCoords[i][1], routeCoords[i][0]);
+                if (d <= maxDistKm) return true;
+                const segLen = distHaversine(routeCoords[i][1], routeCoords[i][0], routeCoords[i+1][1], routeCoords[i+1][0]);
+                if (segLen > 0) {
+                    const t = Math.max(0, Math.min(1, ((point[1]-routeCoords[i][1])*(routeCoords[i+1][1]-routeCoords[i][1]) + (point[0]-routeCoords[i][0])*(routeCoords[i+1][0]-routeCoords[i][0]))/(segLen*segLen)));
+                    const projLat = routeCoords[i][1] + t*(routeCoords[i+1][1]-routeCoords[i][1]);
+                    const projLon = routeCoords[i][0] + t*(routeCoords[i+1][0]-routeCoords[i][0]);
+                    if (distHaversine(point[1], point[0], projLat, projLon) <= maxDistKm) return true;
+                }
+            }
+            return false;
+        }
+        
+        // Fetch wind and current temperature from Open-Meteo (free, no API key), update every 10 min
+        async function fetchWind(lat, lon) {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m,temperature_2m`);
+                const data = await res.json();
+                const speed = data.current?.wind_speed_10m ?? 0;
+                currentWindKmh = Math.round(Number(speed));
+                const windValEl = document.getElementById('windVal');
+                if (windValEl) windValEl.textContent = currentWindKmh + ' km/h';
+                const temp = data.current?.temperature_2m;
+                if (temp != null && !isNaN(temp)) {
+                    const t = Math.round(Number(temp));
+                    const tempSlicer = document.getElementById('tempSlicer');
+                    const tempVal = document.getElementById('tempVal');
+                    if (tempSlicer) { tempSlicer.value = Math.max(-10, Math.min(45, t)); }
+                    if (tempVal) tempVal.textContent = (tempSlicer ? tempSlicer.value : t) + '°C';
+                }
+                calculateRealisticRange();
+            } catch (e) { currentWindKmh = 0; }
+        }
+        function startWindRefresh(midLat, midLon) {
+            if (windFetchInterval) clearInterval(windFetchInterval);
+            fetchWind(midLat, midLon);
+            windFetchInterval = setInterval(() => fetchWind(midLat, midLon), 10 * 60 * 1000);
+        }
+        
+        function distHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLon = (lon2-lon1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+        
+        function distanceAlongRouteToPoint(point, routeCoords) {
+            const r = projectOntoRoute(point, routeCoords);
+            return r ? r.distAlong : 0;
+        }
+        
+        const SNAP_TO_ROUTE_THRESHOLD_KM = 0.05;
+        function projectOntoRoute(point, routeCoords) {
+            const [px, py] = Array.isArray(point) ? point : [point.lng ?? point.longitude, point.lat ?? point.latitude];
+            let bestDistAlong = 0;
+            let bestD = Infinity;
+            let bestProj = null;
+            let cumul = 0;
+            for (let i = 0; i < routeCoords.length - 1; i++) {
+                const a = routeCoords[i], b = routeCoords[i + 1];
+                const segLen = distHaversine(a[1], a[0], b[1], b[0]);
+                const dx = b[0] - a[0], dy = b[1] - a[1];
+                const denom = dx * dx + dy * dy + 1e-15;
+                const t = Math.max(0, Math.min(1, ((px - a[0]) * dx + (py - a[1]) * dy) / denom));
+                const projLon = a[0] + t * dx;
+                const projLat = a[1] + t * dy;
+                const d = distHaversine(py, px, projLat, projLon);
+                const distAlong = cumul + t * segLen;
+                if (d < bestD) { bestD = d; bestDistAlong = distAlong; bestProj = [projLon, projLat]; }
+                cumul += segLen;
+            }
+            return bestProj ? { projected: bestProj, distKm: bestD, distAlong: bestDistAlong } : null;
+        }
+        
+        // Plan route
+        async function planRoute() {
+            let fromCoord = fromCoordManual;
+            const fromText = document.getElementById('fromInput').value.trim();
+            const toText = document.getElementById('toInput').value.trim();
+            if (!toText && !toCoordManual) { alert('Please enter or select a destination'); return; }
+            
+            const stopRows = Array.from(document.querySelectorAll('#stopsList .stop-row'));
+            const userStopCoords = [];
+            for (const row of stopRows) {
+                const input = row.querySelector('input');
+                const text = input?.value?.trim();
+                if (!text) continue;
+                const pinnedLng = row.getAttribute('data-lng');
+                const pinnedLat = row.getAttribute('data-lat');
+                if (pinnedLng != null && pinnedLat != null) {
+                    userStopCoords.push([parseFloat(pinnedLng), parseFloat(pinnedLat)]);
+                } else {
+                    const c = await geocode(text);
+                    if (c) userStopCoords.push(c);
+                }
+            }
+            
+            if (!fromCoord) {
+                if (!fromText || fromText === 'Current Location') {
+                    return new Promise((resolve) => {
+                        navigator.geolocation.getCurrentPosition(
+                            pos => {
+                                fromCoord = [pos.coords.longitude, pos.coords.latitude];
+                                continuePlan(fromCoord, toText, toCoordManual, resolve, userStopCoords);
+                            },
+                            () => {
+                                fromCoord = [31.2, 30.0];
+                                continuePlan(fromCoord, toText, toCoordManual, resolve, userStopCoords);
+                            }
+                        );
+                    });
+                } else {
+                    fromCoord = await geocode(fromText) || [31.2, 30.0];
+                }
+            }
+            const toCoord = toCoordManual || await geocode(toText);
+            return continuePlan(fromCoord, toText, toCoord, null, userStopCoords);
+        }
+        
+        function getPinSVG(color) {
+            const c = color === 'green' ? '#00ff88' : color === 'red' ? '#e53935' : '#00d4ff';
+            return `<svg width="32" height="40" viewBox="0 0 32 40" xmlns="http://www.w3.org/2000/svg"><path d="M16 0C7.2 0 0 7.2 0 16c0 12 16 24 16 24s16-12 16-24C32 7.2 24.8 0 16 0z" fill="${c}" stroke="rgba(0,0,0,0.2)" stroke-width="1"/><circle cx="16" cy="14" r="5" fill="#0a0e17"/></svg>`;
+        }
+        
+        function updateStartEndPinsFromCoords() {
+            if (!map || currentRoute) return;
+            if (fromCoordManual) {
+                if (startMarker) startMarker.setLngLat(fromCoordManual).addTo(map);
+                else {
+                    const startEl = document.createElement('div');
+                    startEl.innerHTML = getPinSVG('green');
+                    startEl.style.cursor = 'pointer';
+                    startMarker = new mapboxgl.Marker({ element: startEl, anchor: 'bottom' }).setLngLat(fromCoordManual).addTo(map);
+                }
+            } else if (startMarker) { startMarker.remove(); startMarker = null; }
+            if (toCoordManual) {
+                if (endMarker) endMarker.setLngLat(toCoordManual).addTo(map);
+                else {
+                    const endEl = document.createElement('div');
+                    endEl.innerHTML = getPinSVG('red');
+                    endEl.style.cursor = 'pointer';
+                    endMarker = new mapboxgl.Marker({ element: endEl, anchor: 'bottom' }).setLngLat(toCoordManual).addTo(map);
+                }
+            } else if (endMarker) { endMarker.remove(); endMarker = null; }
+        }
+        
+        async function continuePlan(fromCoord, toText, toCoordParam, resolve, userStopCoords = []) {
+            const toCoord = toCoordParam || await geocode(toText);
+            if (!toCoord) { alert('Could not find destination'); if (resolve) resolve(); return; }
+            
+            try {
+                let waypoints = [...userStopCoords];
+                let sortedCharging = [];
+                if (selectedChargingStations.length > 0) {
+                    const directRoute = await getDirections(fromCoord, toCoord, waypoints);
+                    const directCoords = directRoute.geometry.coordinates;
+                    sortedCharging = [...selectedChargingStations].sort((a, b) => {
+                        const distA = distanceAlongRouteToPoint([a.lon, a.lat], directCoords);
+                        const distB = distanceAlongRouteToPoint([b.lon, b.lat], directCoords);
+                        return distA - distB;
+                    });
+                    waypoints = [...userStopCoords, ...sortedCharging.map(s => [s.lon, s.lat])];
+                }
+                lastRouteUserStopsCount = userStopCoords.length;
+                lastRouteChargingAdds = sortedCharging.map(s => s.chargeToAdd ?? parseInt(document.getElementById('chargeToAddSlicer')?.value || 20));
+                
+                currentRoute = await getDirections(fromCoord, toCoord, waypoints);
+                routeCoordinates = currentRoute.geometry.coordinates;
+                
+                // Update route on map
+                if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
+                if (map.getSource('route')) map.removeLayer('route-layer');
+                if (map.getSource('route')) map.removeSource('route');
+                removeTrafficLightsLayer();
+                trafficLightsAlongRoute = [];
+                map.addSource('route', {
+                    type: 'geojson',
+                    data: { type: 'Feature', properties: {}, geometry: currentRoute.geometry }
+                });
+                addRouteLayers();
+                (async () => {
+                    try {
+                        trafficLightsAlongRoute = await fetchTrafficLightsAlongRoute(routeCoordinates);
+                        addTrafficLightsLayer(trafficLightsAlongRoute);
+                    } catch (e) { trafficLightsAlongRoute = []; }
+                })();
+                
+                if (startMarker) { startMarker.remove(); startMarker = null; }
+                if (endMarker) { endMarker.remove(); endMarker = null; }
+                waypointMarkers.forEach(m => m.remove());
+                waypointMarkers = [];
+                chargingPinMarkers.forEach(m => m.remove());
+                chargingPinMarkers = [];
+                
+                const startEl = document.createElement('div');
+                startEl.innerHTML = getPinSVG('green');
+                startEl.style.cursor = 'pointer';
+                startMarker = new mapboxgl.Marker({ element: startEl, anchor: 'bottom' }).setLngLat(fromCoord).addTo(map);
+                const endEl = document.createElement('div');
+                endEl.innerHTML = getPinSVG('red');
+                endEl.style.cursor = 'pointer';
+                endMarker = new mapboxgl.Marker({ element: endEl, anchor: 'bottom' }).setLngLat(toCoord).addTo(map);
+                waypoints.forEach(coord => {
+                    const el = document.createElement('div');
+                    el.innerHTML = getPinSVG('blue');
+                    waypointMarkers.push(new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat(coord).addTo(map));
+                });
+                
+                const distKm = (currentRoute.distance / 1000).toFixed(1);
+                const durMin = Math.round(currentRoute.duration / 60);
+                
+                map.fitBounds([fromCoord, ...waypoints, toCoord].length > 2 ? [fromCoord, toCoord] : [fromCoord, toCoord], { padding: 100, maxZoom: 12.5 });
+                
+                const lons = routeCoordinates.map(c => c[0]), lats = routeCoordinates.map(c => c[1]);
+                const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+                const midLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+                startWindRefresh(midLat, midLon);
+                chargingStations = [];
+                renderChargingStations();
+                document.getElementById('startNavBtn').disabled = false;
+                document.getElementById('runDemoBtn').disabled = false;
+                (async () => {
+                    try {
+                        let stations = await fetchChargingStationsAlongRoute(routeCoordinates);
+                        stations = stations.filter(s => pointNearRoute([s.lon, s.lat], routeCoordinates, 30));
+                        chargingStations = stations;
+                        chargingPinMarkers.forEach(m => m.remove());
+                        chargingPinMarkers = [];
+                        chargingStations.forEach(s => {
+                            const el = document.createElement('div');
+                            el.innerHTML = getPinSVG('blue');
+                            chargingPinMarkers.push(new mapboxgl.Marker({ element: el, anchor: 'bottom' }).setLngLat([s.lon, s.lat]).addTo(map));
+                        });
+                        renderChargingStations();
+                    } catch (e) { chargingStations = []; }
+                })();
+                
+                const realistic = calculateRealisticRange();
+                if (realistic <= 0) {
+                    document.getElementById('routeDistance').textContent = distKm + ' km';
+                    document.getElementById('tripProgressText').textContent = `0 km / ${distKm} km`;
+                    document.getElementById('endCharge').textContent = '0';
+                    document.getElementById('rangeSufficient').textContent = '✗ Need charging';
+                    document.getElementById('rangeSufficient').style.color = 'var(--accent-orange)';
+                    if (resolve) resolve();
+                    return;
+                }
+                const pctPerKm = 100 / realistic;
+                const batteryKwh = selectedCar.battery || 60;
+                const chargeToAddDefault = parseInt(document.getElementById('chargeToAddSlicer')?.value || 20);
+                const targetCharge = parseInt(document.getElementById('targetChargeSlicer')?.value || 20);
+                
+                let charge = parseInt(document.getElementById('startBatterySlicer').value);
+                const legs = currentRoute.legs || [];
+                for (let i = 0; i < legs.length; i++) {
+                    const legDistKm = (legs[i].distance || 0) / 1000;
+                    const consumptionPct = legDistKm * pctPerKm;
+                    charge -= consumptionPct;
+                    if (i < legs.length - 1 && i >= lastRouteUserStopsCount) {
+                        const idx = i - lastRouteUserStopsCount;
+                        const add = lastRouteChargingAdds[idx] ?? chargeToAddDefault;
+                        charge = Math.min(100, charge + add);
+                    }
+                }
+                const endChargeAtArrival = Math.max(0, Math.round(charge));
+                
+                document.getElementById('routeDistance').textContent = distKm + ' km';
+                document.getElementById('tripProgressText').textContent = `0 km / ${distKm} km`;
+                const hours = Math.floor(durMin / 60);
+                const mins = durMin % 60;
+                document.getElementById('tripTimeText').textContent = hours > 0 ? `${hours} h ${mins} min` : `${durMin} min`;
+                document.getElementById('tripProgressFill').style.width = '0%';
+                document.getElementById('tripProgressCar').style.left = '0%';
+                
+                simulatedCharge = parseInt(document.getElementById('startBatterySlicer').value);
+                document.getElementById('currentCharge').textContent = simulatedCharge + '%';
+                const hcv = document.getElementById('headerChargeValue');
+                if (hcv) hcv.textContent = simulatedCharge + '%';
+                simulatedProgress = 0;
+                
+                const batteryUsedPct = parseFloat(distKm) * pctPerKm;
+                
+                if (lastRouteChargingAdds.length >= 1 && legs.length >= 2) {
+                    routeChargingStopKm = legs.slice(0, -1).reduce((sum, leg) => sum + (leg.distance || 0), 0) / 1000;
+                    routeChargingAddPct = lastRouteChargingAdds[0] ?? chargeToAddDefault;
+                } else {
+                    routeChargingStopKm = 0;
+                    routeChargingAddPct = 0;
+                }
+                
+                document.getElementById('endCharge').textContent = endChargeAtArrival;
+                const noteEl = document.getElementById('endChargeNote');
+                if (noteEl) {
+                    if (lastRouteChargingAdds.length >= 1 && routeChargingAddPct > 0) {
+                        noteEl.textContent = ' (incl. +' + routeChargingAddPct + '% at stop)';
+                        noteEl.style.display = '';
+                    } else {
+                        noteEl.textContent = '';
+                        noteEl.style.display = 'none';
+                    }
+                }
+                const sufficient = parseFloat(distKm) <= realistic && endChargeAtArrival >= targetCharge;
+                document.getElementById('rangeSufficient').textContent = sufficient ? '✓ Yes' : '✗ Need charging';
+                document.getElementById('rangeSufficient').style.color = sufficient ? 'var(--accent-green)' : 'var(--accent-orange)';
+                
+                update5PctMarker(parseFloat(distKm), simulatedCharge, batteryUsedPct, pctPerKm);
+                
+                if (currentRoute.legs?.[0]?.steps?.[0]?.maneuver) {
+                    document.getElementById('navInstruction').style.display = 'flex';
+                    const dist = currentRoute.legs[0].steps[0].distance || 0;
+                    document.getElementById('navDistance').textContent = dist >= 1000 ? 'In ' + (dist/1000).toFixed(1) + ' km' : 'In ' + Math.round(dist) + ' m';
+                    document.getElementById('navAction').textContent = currentRoute.legs[0].steps[0].maneuver.instruction || 'Head to destination';
+                    const mIcon0 = document.getElementById('navManeuverIcon');
+                    if (mIcon0) mIcon0.innerHTML = getManeuverIconSVG(currentRoute.legs[0].steps[0].maneuver?.type, currentRoute.legs[0].steps[0].maneuver?.modifier);
+                }
+                if (resolve) resolve();
+            } catch (e) {
+                alert('Route error: ' + (e && e.message ? e.message : String(e)));
+                document.getElementById('startNavBtn').disabled = false;
+                document.getElementById('runDemoBtn').disabled = false;
+                if (resolve) resolve();
+            }
+        }
+        
+        function getEvChargeIconSVG() {
+            return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#00ff88" stroke="rgba(0,0,0,0.3)" stroke-width="0.8" d="M13 2L4 14h6l-2 8 9-12h-6l2-8z"/><circle cx="12" cy="12" r="10" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.8"/></svg>`;
+        }
+        function update5PctMarker(distKm, startBattery, batteryUsedPct, pctPerKm) {
+            const fivePctEl = document.getElementById('tripProgress5pct');
+            const chargeIconEl = document.getElementById('tripProgressChargeIcon');
+            const redZoneEl = document.getElementById('tripProgressRedZone');
+            const chargeStopDotEl = document.getElementById('tripProgressChargeStopDot');
+            pctPerKm = pctPerKm || (distKm > 0 && batteryUsedPct > 0 ? 100 / (distKm / (batteryUsedPct / 100)) : 0);
+            if (!fivePctEl) return;
+            if (!currentRoute || !distKm || batteryUsedPct <= 0) {
+                fivePctEl.style.display = 'none';
+                if (chargeIconEl) chargeIconEl.style.display = 'none';
+                if (redZoneEl) redZoneEl.style.display = 'none';
+                if (chargeStopDotEl) chargeStopDotEl.style.display = 'none';
+                return;
+            }
+            const hasChargingStop = routeChargingStopKm > 0 && routeChargingStopKm < distKm && routeChargingAddPct > 0;
+            if (chargeStopDotEl) {
+                if (hasChargingStop) {
+                    const chargeStopPos = (routeChargingStopKm / distKm) * 100;
+                    chargeStopDotEl.style.left = chargeStopPos + '%';
+                    chargeStopDotEl.style.display = 'block';
+                } else {
+                    chargeStopDotEl.style.display = 'none';
+                }
+            }
+            let redZoneLeftPct = null;
+            if (hasChargingStop) {
+                const batteryAtStop = startBattery - routeChargingStopKm * pctPerKm;
+                const chargeAfterStop = Math.min(100, batteryAtStop + routeChargingAddPct);
+                const remainingKm = distKm - routeChargingStopKm;
+                const remainingPct = remainingKm * pctPerKm;
+                const p5Before = (startBattery - 5) / batteryUsedPct;
+                const fracBefore = routeChargingStopKm / distKm;
+                if (p5Before > 0 && p5Before < fracBefore) {
+                    redZoneLeftPct = p5Before * 100;
+                } else if (remainingPct > 0 && chargeAfterStop > 5) {
+                    const fracRemaining = (chargeAfterStop - 5) / remainingPct;
+                    if (fracRemaining < 1) {
+                        redZoneLeftPct = fracBefore * 100 + (1 - fracBefore) * fracRemaining * 100;
+                    }
+                }
+            } else {
+                const p5 = (startBattery - 5) / batteryUsedPct;
+                if (p5 > 0 && p5 < 1) redZoneLeftPct = p5 * 100;
+            }
+            if (redZoneLeftPct != null && redZoneLeftPct < 100) {
+                const leftPct = redZoneLeftPct + '%';
+                fivePctEl.style.left = leftPct;
+                fivePctEl.style.display = 'block';
+                if (chargeIconEl) {
+                    chargeIconEl.style.left = leftPct;
+                    chargeIconEl.style.display = 'block';
+                    chargeIconEl.innerHTML = getEvChargeIconSVG();
+                }
+                if (redZoneEl) {
+                    redZoneEl.style.left = leftPct;
+                    redZoneEl.style.display = 'block';
+                }
+            } else {
+                fivePctEl.style.display = 'none';
+                if (chargeIconEl) chargeIconEl.style.display = 'none';
+                if (redZoneEl) redZoneEl.style.display = 'none';
+            }
+        }
+        
+        // Navigation mode: locked start camera, then adaptive by road/speed
+        let lastSpokenInstruction = '';
+        let lastDemoTime = 0;
+        let currentStepIndex = 0;
+        let currentStreetName = '';
+        let routeSteps = [];
+        let cameraFollowCar = true;
+        let userZoom = null, userPitch = null;
+        const NAV_START_PITCH = 60;
+        const CAMERA_EASE_DURATION = 800;
+        const CAMERA_EASING = t => t * (2 - t);
+        // Zoom by speed: ≤30 → 21, 30–60 → 20, 60–130 → 19, >130 → 19
+        function zoomForSpeedAndAhead(speedKmh) {
+            const speed = Math.max(0, typeof speedKmh === 'number' ? speedKmh : 0);
+            if (speed <= 30) return 21;
+            if (speed <= 60) return 20;
+            return 19;
+        }
+        // Tilt by speed: ≤30 → 75, 30–60 → 70, >60 → 75; turn/intersection → 60
+        function pitchForSpeedAndTurn(speedKmh, nearTurn) {
+            if (nearTurn) return 60;
+            const speed = Math.max(0, typeof speedKmh === 'number' ? speedKmh : 0);
+            if (speed <= 30) return 75;
+            if (speed <= 60) return 70;
+            return 75;
+        }
+        function getCarScreenOffsetY() {
+            const container = map && map.getContainer && map.getContainer();
+            if (!container) return 0;
+            const h = container.clientHeight || 0;
+            return (h / 2) - 380;
+        }
+        
+        function updateNavCameraAndGuidance() {
+            const navCtrlsEl = document.getElementById('mapNavControls');
+            if (!isNavigating && navCtrlsEl) navCtrlsEl.classList.remove('visible');
+            // GPS-only mode: no route but real nav – follow actual GPS position like Google Maps
+            if (isRealNav && lastGpsPos && (!currentRoute || !routeCoordinates.length)) {
+                const pos = [lastGpsPos.lng, lastGpsPos.lat];
+                const bearing = (lastGpsPos.heading != null && !isNaN(lastGpsPos.heading)) ? lastGpsPos.heading : map.getBearing();
+                if (isNavigating) {
+                    const navCtrls = document.getElementById('mapNavControls');
+                    if (navCtrls) navCtrls.classList.add('visible');
+                    if (cameraFollowCar) {
+                        const z = userZoom != null ? userZoom : 20;
+                        const p = userPitch != null ? userPitch : NAV_START_PITCH;
+                        const offsetY = getCarScreenOffsetY();
+                        map.easeTo({ center: pos, bearing: bearing, pitch: p, zoom: z, duration: CAMERA_EASE_DURATION, easing: CAMERA_EASING, offset: [0, offsetY] });
+                    }
+                    updateCarMarker(pos, bearing, map.getZoom(), '');
+                }
+                return;
+            }
+            if (!currentRoute || !routeCoordinates.length) return;
+            let pos;
+            let idx = Math.floor(simulatedProgress * (routeCoordinates.length - 1));
+            if (isRealNav && lastGpsPos) {
+                const proj = projectOntoRoute([lastGpsPos.lng, lastGpsPos.lat], routeCoordinates);
+                if (proj && proj.distKm < SNAP_TO_ROUTE_THRESHOLD_KM) {
+                    pos = proj.projected;
+                    const totalDistKm = (currentRoute.distance || 1) / 1000;
+                    if (totalDistKm > 0) idx = Math.min(Math.floor((proj.distAlong / totalDistKm) * (routeCoordinates.length - 1)), routeCoordinates.length - 1);
+                } else {
+                    pos = [lastGpsPos.lng, lastGpsPos.lat];
+                    idx = findNearestRouteIndex(pos, routeCoordinates);
+                }
+            } else {
+                pos = routeCoordinates[Math.min(idx, routeCoordinates.length - 1)];
+            }
+            let bearing = idx < routeCoordinates.length - 1 
+                ? getBearing(routeCoordinates[idx], routeCoordinates[Math.min(idx + 1, routeCoordinates.length - 1)])
+                : map.getBearing();
+            if (isRealNav && lastGpsPos && lastGpsPos.heading != null && !isNaN(lastGpsPos.heading))
+                bearing = lastGpsPos.heading;
+            
+            if (isNavigating) {
+                const navCtrls = document.getElementById('mapNavControls');
+                if (navCtrls) navCtrls.classList.add('visible');
+                    if (cameraFollowCar) {
+                        let zoom = userZoom;
+                        let pitch = userPitch;
+                        const speed = typeof simulatedSpeed === 'number' ? simulatedSpeed : 0;
+                        if (zoom == null) zoom = zoomForSpeedAndAhead(speed);
+                        if (pitch == null) {
+                            const coords = routeCoordinates;
+                            let distToTurnM = 999;
+                            let cumDist = 0;
+                            let prevB = bearing;
+                            const straightLook = Math.min(50, coords.length - idx - 1);
+                            for (let i = 1; i < straightLook && idx + i + 1 < coords.length; i++) {
+                                const segKm = distHaversine(coords[idx + i][1], coords[idx + i][0], coords[idx + i + 1][1], coords[idx + i + 1][0]);
+                                cumDist += segKm * 1000;
+                                const b = getBearing(coords[idx + i], coords[idx + i + 1]);
+                                const d = (b - prevB + 540) % 360 - 180;
+                                if (distToTurnM > 100 && Math.abs(d) > 25) distToTurnM = cumDist;
+                                prevB = b;
+                            }
+                            const nearTurn = distToTurnM < 250;
+                            pitch = pitchForSpeedAndTurn(speed, nearTurn);
+                        }
+                        const z = zoom ?? 20;
+                        const offsetY = getCarScreenOffsetY();
+                        map.easeTo({ center: pos, bearing: bearing, pitch: pitch ?? 70, zoom: z, duration: CAMERA_EASE_DURATION, easing: CAMERA_EASING, offset: [0, offsetY] });
+                    }
+                const currentZoom = map.getZoom();
+                updateCarMarker(pos, bearing, currentZoom, currentStreetName);
+            }
+            
+            if (currentRoute.legs) {
+                let distToNext = 0, segIdx = 0;
+                let junctionShownThisStep = false;
+                const totalDist = currentRoute.distance / 1000;
+                const doneDist = totalDist * simulatedProgress;
+                for (let i = 0; i < currentRoute.legs.length; i++) {
+                    const leg = currentRoute.legs[i];
+                    const maxspeedArr = leg?.annotation?.maxspeed;
+                    for (let j = 0; j < (leg.steps || []).length; j++) {
+                        const step = leg.steps[j];
+                        const stepDist = (step.distance || 0) / 1000;
+                        if (doneDist + 0.1 < distToNext + stepDist) {
+                            currentStreetName = (step.name || (step.names && step.names[0]) || '').trim();
+                            const distM = Math.round((distToNext + stepDist - doneDist) * 1000);
+                            junctionShownThisStep = (distM < 400 && distM >= 0 && step.maneuver?.type !== 'depart');
+                            const msg = (distM >= 1000 ? (distM/1000).toFixed(1) + ' kilometers' : distM + ' meters') + ', ' + (step.maneuver?.instruction || 'Continue');
+                            document.getElementById('navDistance').textContent = distM >= 1000 ? 'In ' + (distM/1000).toFixed(1) + ' km' : 'In ' + distM + ' m';
+                            document.getElementById('navAction').textContent = step.maneuver?.instruction || 'Continue';
+                            const mIcon = document.getElementById('navManeuverIcon');
+                            if (mIcon) mIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
+                            document.getElementById('navInstruction').style.display = 'flex';
+                            const junctionView = document.getElementById('junctionView');
+                            const junctionDrawing = document.getElementById('junctionDrawing');
+                            const junctionLabel = document.getElementById('junctionLabel');
+                            if (junctionView && junctionDrawing && junctionLabel) {
+                                if (junctionShownThisStep) {
+                                    const j = getJunctionViewSVG(step.maneuver?.type, step.maneuver?.modifier, step.maneuver?.instruction);
+                                    junctionDrawing.innerHTML = j.svg;
+                                    junctionLabel.textContent = j.label;
+                                    junctionView.classList.add('visible');
+                                    junctionView.style.display = 'block';
+                                } else {
+                                    junctionView.classList.remove('visible');
+                                    junctionView.style.display = 'none';
+                                }
+                            }
+                            if (document.getElementById('audioGuidance')?.checked && msg !== lastSpokenInstruction && distM < 600) {
+                                speakGuidance(msg);
+                                lastSpokenInstruction = msg;
+                            }
+                            break;
+                        }
+                        distToNext += stepDist;
+                        segIdx++;
+                    }
+                }
+                if (!junctionShownThisStep) {
+                    const jv = document.getElementById('junctionView');
+                    if (jv) { jv.classList.remove('visible'); jv.style.display = 'none'; }
+                }
+            }
+            
+        }
+        
+        let _navIconId = 0;
+        const CAR_ICON_4_URLS = { 'car-black': './assets/car-black.png', 'car-blue': './assets/car-blue.png', 'car-white': './assets/car-white.png', 'car-suv-white': './assets/car-suv-white.png' };
+        const REAL_CAR_LENGTH_M = 4.5;
+        const CAR_ICON_SCALE_MULT = 1.35;
+        const CAR_ICON_SIZE_MIN_PX = 28;
+        const CAR_ICON_SIZE_MAX_PX = 160;
+        window.__carIcons4Loaded = false;
+        (function preloadCarIcons() {
+            let n = 0;
+            Object.values(CAR_ICON_4_URLS).forEach(url => {
+                const img = new Image();
+                img.onload = img.onerror = () => { n++; if (n >= 4) window.__carIcons4Loaded = true; };
+                img.src = url;
+            });
+        })();
+        function getCarIcon4HTML(type, size) {
+            const url = CAR_ICON_4_URLS[type] || CAR_ICON_4_URLS['car-black'];
+            return `<img class="car-sprite-icon" src="${url}" alt="" style="width:${size}px;height:${size}px;object-fit:contain;display:block;">`;
+        }
+        function getNavIconHTML(type, size) {
+            size = size || 48;
+            if (CAR_ICON_4_URLS[type]) return getCarIcon4HTML(type, size);
+            return getNavIconSVG(type, size);
+        }
+        function getNavIconSVG(type, size) {
+            size = size || 48;
+            if (CAR_ICON_4_URLS[type]) return getCarIcon4HTML(type, size);
+            const uid = 'nav' + (++_navIconId);
+            const W = '#0d0d14';
+            function car(body, cabin, roof) {
+                return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${uid}-f"><feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-opacity="0.3"/></filter></defs>${body}${roof || ''}${cabin}</svg>`;
+            }
+            const sedanBody = (fill) => `<path d="M8 14 L40 14 L44 20 L44 36 Q42 40 24 40 Q6 40 4 36 L4 20 Z" fill="${fill}" filter="url(#${uid}-f)" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>`;
+            const sedanCabin = `<path d="M14 18 L34 18 L32 32 L16 32 Z" fill="${W}"/>`;
+            const suvBody = (fill) => `<path d="M6 12 L42 12 L46 18 L46 38 Q44 42 24 42 Q4 42 2 38 L2 18 Z" fill="${fill}" filter="url(#${uid}-f)" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/><path d="M12 10 L36 10 L36 12 L12 12 Z" fill="rgba(0,0,0,0.15)"/><path d="M16 8 L20 8 L20 10 L16 10 Z" fill="rgba(0,0,0,0.2)"/><path d="M28 8 L32 8 L32 10 L28 10 Z" fill="rgba(0,0,0,0.2)"/>`;
+            const suvCabin = `<path d="M12 16 L36 16 L34 34 L14 34 Z" fill="${W}"/>`;
+            const vanBody = (fill) => `<path d="M4 14 L44 14 L44 36 Q42 40 24 40 Q6 40 4 36 Z" fill="${fill}" filter="url(#${uid}-f)" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/>`;
+            const vanCabin = `<path d="M10 18 L38 18 L36 32 L12 32 Z" fill="${W}"/>`;
+            const truckBody = `<path d="M8 14 L24 14 L24 18 L38 18 Q42 22 42 28 L42 38 Q40 42 24 42 Q8 42 6 38 L6 28 Q6 22 10 18 Z" fill="#2a2a3a" filter="url(#${uid}-f)" stroke="rgba(0,0,0,0.25)" stroke-width="0.5"/><path d="M24 20 L40 20 L40 36 L24 36 Z" fill="#3d3d50"/><path d="M14 18 L22 18 L20 32 L16 32 Z" fill="${W}"/>`;
+            if (type === 'arrow') return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${uid}-ag" x1="0.5" y1="1" x2="0.5" y2="0"><stop offset="0%" stop-color="#1565c0"/><stop offset="100%" stop-color="#42a5f5"/></linearGradient></defs><path d="M24 4 L44 40 L32 40 L32 44 L16 44 L16 40 L4 40 Z" fill="url(#${uid}-ag)" stroke="white" stroke-width="2" stroke-linejoin="round"/></svg>`;
+            if (type === 'arrow-circle') return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="${uid}-cb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7ec8f4"/><stop offset="100%" stop-color="#5aa8d4"/></linearGradient></defs><circle cx="24" cy="24" r="22" fill="url(#${uid}-cb)" stroke="rgba(255,255,255,0.6)" stroke-width="1"/><path d="M24 36 L24 18 M24 18 L18 24 M24 18 L30 24" stroke="#e53935" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            if (type === 'car' || type === 'sedan') return car(sedanBody('#1976d2'), sedanCabin);
+            if (type === 'taxi') return car(sedanBody('#f9a825'), sedanCabin);
+            if (type === 'police') return car(`<path d="M8 14 L40 14 L44 20 L44 36 Q42 40 24 40 Q6 40 4 36 L4 20 Z" fill="#fff" filter="url(#${uid}-f)" stroke="rgba(0,0,0,0.2)" stroke-width="0.5"/><path d="M8 10 L40 10 L44 16 L44 20 L4 20 L4 16 Z" fill="#1565c0"/>`, sedanCabin);
+            if (type === 'hatchback') return car(sedanBody('#43a047'), sedanCabin);
+            if (type === 'suv') return car(suvBody('#00897b'), suvCabin);
+            if (type === 'suv-beige') return car(suvBody('#c4a574'), suvCabin);
+            if (type === 'suv-grey') return car(suvBody('#455a64'), suvCabin);
+            if (type === 'truck') return `<svg width="${size}" height="${size}" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${uid}-tf"><feDropShadow dx="0" dy="1" stdDeviation="0.5" flood-opacity="0.3"/></filter></defs>${truckBody}</svg>`;
+            if (type === 'compact') return car(sedanBody('#e53935'), sedanCabin);
+            if (type === 'crossover') return car(suvBody('#5c6bc0'), suvCabin);
+            if (type === 'byd' || type === 'byd-songl') return car(sedanBody('#c62828'), sedanCabin);
+            if (type === 'van') return car(vanBody('#78909c'), vanCabin);
+            if (type === 'van-beige') return car(vanBody('#c4a574'), vanCabin);
+            if (type === 'van-red') return car(vanBody('#d32f2f'), vanCabin);
+            if (type === 'van-white') return car(vanBody('#eceff1'), vanCabin);
+            if (type === 'sports') return car(sedanBody('#d32f2f'), sedanCabin);
+            if (type === 'gray') return car(sedanBody('#607d8b'), sedanCabin);
+            if (type === 'teal') return car(sedanBody('#00695c'), sedanCabin);
+            if (type === 'navy') return car(sedanBody('#0d47a1'), sedanCabin);
+            if (type === 'red') return car(sedanBody('#c62828'), sedanCabin);
+            if (type === 'white') return car(sedanBody('#eceff1'), sedanCabin);
+            if (type === 'blue') return car(sedanBody('#1976d2'), sedanCabin);
+            return car(sedanBody('#1976d2'), sedanCabin);
+        }
+        
+        function metersPerPixelAt(zoom, lat) {
+            if (zoom == null || lat == null) return 0.5;
+            return (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, zoom);
+        }
+        function updateCarMarker(pos, bearing, zoom, streetName) {
+            const lat = Array.isArray(pos) ? pos[1] : (pos?.lat ?? pos?.latitude);
+            const z = zoom != null ? zoom : (map && map.getZoom && map.getZoom());
+            const mpp = metersPerPixelAt(z, lat);
+            const sizePx = mpp > 0 ? Math.round((REAL_CAR_LENGTH_M / mpp) * CAR_ICON_SCALE_MULT) : 52;
+            const baseSize = Math.max(CAR_ICON_SIZE_MIN_PX, Math.min(CAR_ICON_SIZE_MAX_PX, sizePx));
+            const showStreet = (typeof streetName === 'string' && streetName.length > 0);
+            if (!carMarker) {
+                const el = document.createElement('div');
+                el.className = 'car-marker';
+                el.style.cssText = `filter:drop-shadow(0 3px 6px rgba(0,0,0,0.6));transform-origin:center center;`;
+                el.innerHTML = getNavIconHTML(selectedNavIcon, baseSize);
+                carMarker = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat(pos).addTo(map);
+            }
+            carMarker.setLngLat(pos);
+            const el = carMarker.getElement();
+            if (showStreet) {
+                el.style.width = 'auto';
+                el.style.height = 'auto';
+                el.className = 'car-marker car-marker-wrapper';
+                const safeName = String(streetName).replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                el.innerHTML = `<div style="width:${baseSize}px;height:${baseSize}px;">${getNavIconHTML(selectedNavIcon, baseSize)}</div><div class="car-street-name-box" dir="auto" title="${safeName}">${safeName}</div>`;
+            } else {
+                el.className = 'car-marker';
+                el.style.width = baseSize + 'px';
+                el.style.height = baseSize + 'px';
+                el.innerHTML = getNavIconHTML(selectedNavIcon, baseSize);
+            }
+            el.style.transform = `rotate(${bearing}deg)`;
+        }
+        
+        function getManeuverIconSVG(type, modifier) {
+            const mid = 'navm' + (++_navIconId);
+            const defs3d = (g1, g2) => `<defs><filter id="${mid}-d" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="1" dy="2" result="off"/><feFlood flood-color="#000" flood-opacity="0.4"/><feComposite in2="off" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="${mid}-g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7ec8f4"/><stop offset="50%" stop-color="#2196f3"/><stop offset="100%" stop-color="#1565c0"/></linearGradient><linearGradient id="${mid}-g2" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#0d47a1"/><stop offset="100%" stop-color="#42a5f5"/></linearGradient></defs>`;
+            const arrowRight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${defs3d()}<path d="M14 12 L34 24 L14 36 L14 28 L26 24 L14 20 Z" fill="url(#${mid}-g1)" filter="url(#${mid}-d)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/></svg>`;
+            const arrowLeft = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${defs3d()}<path d="M34 12 L14 24 L34 36 L34 28 L22 24 L34 20 Z" fill="url(#${mid}-g1)" filter="url(#${mid}-d)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/></svg>`;
+            const arrowStraight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${defs3d()}<path d="M20 36 L24 8 L28 36 L24 32 Z" fill="url(#${mid}-g2)" filter="url(#${mid}-d)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/></svg>`;
+            const arrowSlightRight = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${defs3d()}<path d="M24 8 L38 24 L28 24 L28 40 L20 40 L20 24 L10 24 Z" fill="url(#${mid}-g1)" filter="url(#${mid}-d)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/></svg>`;
+            const arrowSlightLeft = `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">${defs3d()}<path d="M24 8 L10 24 L20 24 L20 40 L28 40 L28 24 L38 24 Z" fill="url(#${mid}-g1)" filter="url(#${mid}-d)" stroke="rgba(255,255,255,0.35)" stroke-width="0.8"/></svg>`;
+            const mod = (modifier || '').toLowerCase().replace(/-/g, ' ');
+            const inst = (type || '').toLowerCase();
+            if (type === 'arrive') return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${mid}-ad" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.5"/><feOffset dx="0" dy="1"/><feFlood flood-color="#000" flood-opacity="0.3"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="${mid}-ag" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#69f0ae"/><stop offset="100%" stop-color="#00c853"/></linearGradient></defs><circle cx="24" cy="24" r="14" fill="none" stroke="url(#${mid}-ag)" stroke-width="4" filter="url(#${mid}-ad)"/><circle cx="24" cy="24" r="6" fill="url(#${mid}-ag)"/></svg>`;
+            if (type === 'depart' || type === 'merge') return arrowStraight;
+            if (type === 'roundabout' || type === 'rotary') {
+                return `<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><filter id="${mid}-rb" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/><feOffset dx="1" dy="1.5"/><feFlood flood-color="#000" flood-opacity="0.35"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="${mid}-rbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#5eb8ff"/><stop offset="50%" stop-color="#2196f3"/><stop offset="100%" stop-color="#1565c0"/></linearGradient></defs><circle cx="24" cy="24" r="18" fill="none" stroke="#37474f" stroke-width="3" opacity="0.9"/><circle cx="24" cy="24" r="12" fill="none" stroke="url(#${mid}-rbg)" stroke-width="5" filter="url(#${mid}-rb)" stroke-linecap="round"/><path d="M24 38 L24 28 A10 10 0 0 1 34 24 L38 20" stroke="url(#${mid}-rbg)" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#${mid}-rb)"/><path d="M36 22 L40 24 L36 26" stroke="url(#${mid}-rbg)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+            }
+            if (type === 'fork' || type === 'turn') {
+                if (mod.includes('slight') && mod.includes('right')) return arrowSlightRight;
+                if (mod.includes('slight') && mod.includes('left')) return arrowSlightLeft;
+                if (mod.includes('right')) return arrowRight;
+                if (mod.includes('left')) return arrowLeft;
+                return arrowStraight;
+            }
+            if (mod.includes('right')) return arrowRight;
+            if (mod.includes('left')) return arrowLeft;
+            return arrowStraight;
+        }
+        
+        function getJunctionViewSVG(type, modifier, instruction) {
+            const inst = (instruction || '').toLowerCase();
+            const mod = (modifier || '').toLowerCase();
+            const isBridge = /bridge|underpass|under the|viaduct/.test(inst);
+            const stayBridge = /stay|keep.*(on|the) bridge|continue on the bridge|don't go under/.test(inst);
+            const takeUnder = /take.*under|road under|go under|exit.*under|ramp under/.test(inst);
+            const underRight = /right|ramp.*right|take the right/.test(inst) && takeUnder;
+            const underLeft = /left|ramp.*left|take the left/.test(inst) && takeUnder;
+            if (type === 'arrive') return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="70" r="36" fill="none" stroke="#00ff88" stroke-width="8"/><circle cx="100" cy="70" r="14" fill="#00ff88"/></svg>', label: 'Arrive at destination' };
+            if (isBridge && (stayBridge || takeUnder)) {
+                const highlightTop = stayBridge;
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M20 50 L180 50" stroke="#4a5568" stroke-width="12" fill="none"/><path d="M20 90 L180 90" stroke="#4a5568" stroke-width="12" fill="none"/><path d="M20 50 L20 90 M180 50 L180 90" stroke="#2d3748" stroke-width="4" fill="none"/>' + (highlightTop ? '<path d="M20 50 L180 50" stroke="#00d4ff" stroke-width="14" fill="none"/><path d="M100 35 L100 55" stroke="#00d4ff" stroke-width="6"/><circle cx="100" cy="45" r="8" fill="#00d4ff"/>' : '') + (!highlightTop ? '<path d="M20 90 L180 90" stroke="#00d4ff" stroke-width="14" fill="none"/><path d="M100 75 L100 105" stroke="#00d4ff" stroke-width="6"/><circle cx="100" cy="90" r="8" fill="#00d4ff"/>' : '') + '<text x="100" y="25" text-anchor="middle" fill="#8b9dc3" font-size="11">Bridge</text><text x="100" y="125" text-anchor="middle" fill="#8b9dc3" font-size="11">Road under</text></svg>', label: stayBridge ? 'Stay on the bridge' : (underRight ? 'Take the road under (right)' : underLeft ? 'Take the road under (left)' : 'Take the road under') };
+            }
+            if (type === 'fork' || mod.includes('keep')) {
+                const keepRight = mod.includes('right') || /keep right|take the right/.test(inst);
+                const keepLeft = mod.includes('left') || /keep left|take the left/.test(inst);
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 130 L100 60" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M100 60 L40 20" stroke="' + (keepLeft ? '#00d4ff' : '#4a5568') + '" stroke-width="' + (keepLeft ? 14 : 10) + '" fill="none"/><path d="M100 60 L160 20" stroke="' + (keepRight ? '#00d4ff' : '#4a5568') + '" stroke-width="' + (keepRight ? 14 : 10) + '" fill="none"/><circle cx="100" cy="60" r="8" fill="#00d4ff"/>' + (keepLeft ? '<circle cx="38" cy="22" r="10" fill="#00d4ff" opacity="0.9"/>' : '') + (keepRight ? '<circle cx="162" cy="22" r="10" fill="#00d4ff" opacity="0.9"/>' : '') + '</svg>', label: keepRight ? 'Keep right' : keepLeft ? 'Keep left' : (mod.includes('right') ? 'Keep right' : 'Keep left') };
+            }
+            if (type === 'merge') {
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M30 100 L90 50" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M170 100 L110 50" stroke="#4a5568" stroke-width="10" fill="none"/><path d="M100 50 L100 20" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: mod.includes('right') ? 'Merge right' : 'Merge left' };
+            }
+            if (type === 'roundabout' || type === 'rotary') {
+                return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><defs><filter id="rb-f" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur in="SourceAlpha" stdDeviation="2"/><feOffset dx="2" dy="2"/><feFlood flood-color="#000" flood-opacity="0.4"/><feComposite in2="SourceAlpha" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter><linearGradient id="rb-road" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#546e7a"/><stop offset="40%" stop-color="#37474f"/><stop offset="100%" stop-color="#263238"/></linearGradient><linearGradient id="rb-arrow" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7ec8f4"/><stop offset="100%" stop-color="#00d4ff"/></linearGradient></defs><circle cx="100" cy="70" r="52" fill="none" stroke="url(#rb-road)" stroke-width="18" filter="url(#rb-f)" opacity="0.95"/><circle cx="100" cy="70" r="32" fill="none" stroke="url(#rb-road)" stroke-width="6" filter="url(#rb-f)"/><path d="M100 118 L100 95 A 28 28 0 0 1 128 70 L155 58" stroke="url(#rb-arrow)" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#rb-f)"/><path d="M150 52 L158 58 L150 64" stroke="url(#rb-arrow)" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>', label: 'Enter roundabout' };
+            }
+            const slightRight = mod.includes('slight') && mod.includes('right');
+            const slightLeft = mod.includes('slight') && mod.includes('left');
+            const sharpRight = mod.includes('sharp') && mod.includes('right');
+            const sharpLeft = mod.includes('sharp') && mod.includes('left');
+            const turnRight = mod.includes('right') && !mod.includes('left') && !mod.includes('slight') && !mod.includes('sharp');
+            const turnLeft = mod.includes('left') && !mod.includes('right') && !mod.includes('slight') && !mod.includes('sharp');
+            if (sharpRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 120 L100 70 L160 30" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="70" r="12" fill="#00d4ff"/></svg>', label: 'Sharp right' };
+            if (sharpLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 120 L100 70 L40 30" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="100" cy="70" r="12" fill="#00d4ff"/></svg>', label: 'Sharp left' };
+            if (turnRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M80 120 L80 40 L160 40" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="80" cy="40" r="12" fill="#00d4ff"/></svg>', label: 'Turn right' };
+            if (turnLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M120 120 L120 40 L40 40" stroke="#00d4ff" stroke-width="16" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="120" cy="40" r="12" fill="#00d4ff"/></svg>', label: 'Turn left' };
+            if (slightRight) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 50 Q100 30 130 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: 'Slight right' };
+            if (slightLeft) return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 50 Q100 30 70 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="50" r="10" fill="#00d4ff"/></svg>', label: 'Slight left' };
+            return { svg: '<svg viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg"><path d="M100 110 L100 30" stroke="#00d4ff" stroke-width="14" fill="none"/><circle cx="100" cy="70" r="10" fill="#00d4ff"/></svg>', label: 'Continue straight' };
+        }
+        
+        function getBearing(from, to) {
+            const dLon = (to[0] - from[0]) * Math.PI / 180;
+            const lat1 = from[1] * Math.PI / 180, lat2 = to[1] * Math.PI / 180;
+            const y = Math.sin(dLon) * Math.cos(lat2);
+            const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+        }
+        
+        function speakGuidance(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(text);
+            u.rate = 0.92;
+            u.pitch = 1;
+            u.volume = 1;
+            const voiceId = document.getElementById('voiceSelect')?.value;
+            if (voiceId) {
+                const voices = window.speechSynthesis.getVoices();
+                const voice = voices.find(v => v.voiceURI === voiceId || v.name === voiceId);
+                if (voice) u.voice = voice;
+                try { localStorage.setItem('bydnav_voice', voiceId); } catch (e) {}
+            }
+            window.speechSynthesis.speak(u);
+        }
+        function populateVoiceList() {
+            const sel = document.getElementById('voiceSelect');
+            if (!sel) return;
+            const voices = window.speechSynthesis.getVoices();
+            const saved = localStorage.getItem('bydnav_voice') || '';
+            sel.innerHTML = '<option value="">Default (system)</option>';
+            voices.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.voiceURI;
+                opt.textContent = v.name + (v.lang ? ' (' + v.lang + ')' : '');
+                if (v.voiceURI === saved) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+        if (window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = populateVoiceList;
+            populateVoiceList();
+        }
+        
+        function renderChargingStations() {
+            const el = document.getElementById('chargingStations');
+            if (chargingStations.length === 0) {
+                el.innerHTML = '<p style="font-size:0.85rem;color:var(--text-secondary);">No EV chargers within 25 km of this route. Try a different destination or check Mapbox EV access.</p>';
+            } else {
+                const chargeToAdd = parseInt(document.getElementById('chargeToAddSlicer')?.value || 20);
+                el.innerHTML = chargingStations.map(s => `
+                    <div class="charging-station-item" data-id="${s.id}" data-lon="${s.lon}" data-lat="${s.lat}">
+                        <input type="checkbox" class="charging-tick" ${selectedChargingStations.some(c => c.id === s.id) ? 'checked' : ''} aria-label="Add as stop" />
+                        <div class="station-row">
+                            <span>🔌</span>
+                            <div>
+                                <div class="station-name">${s.name}</div>
+                                <div class="station-power">${s.power} • +${chargeToAdd}% charge</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                el.querySelectorAll('.charging-station-item').forEach(item => {
+                    const tick = item.querySelector('.charging-tick');
+                    const onToggle = () => {
+                        const id = item.dataset.id;
+                        const lon = parseFloat(item.dataset.lon);
+                        const lat = parseFloat(item.dataset.lat);
+                        const chargeToAdd = parseInt(document.getElementById('chargeToAddSlicer')?.value || 20);
+                        const isChecked = tick.checked;
+                        if (isChecked) {
+                            const st = chargingStations.find(s => s.id === id) || { id, name: item.querySelector('.station-name')?.textContent || 'Station', lat, lon, power: '50 kW' };
+                            st.chargeToAdd = chargeToAdd;
+                            selectedChargingStations = [st];
+                            el.querySelectorAll('.charging-tick').forEach(cb => { if (cb !== tick) cb.checked = false; });
+                            el.querySelectorAll('.charging-station-item').forEach(i => i.classList.remove('selected'));
+                            item.classList.add('selected');
+                            if (map) map.flyTo({ center: [lon, lat], zoom: 14.4, duration: 600 });
+                            Promise.resolve(planRoute()).then(() => {});
+                        } else {
+                            selectedChargingStations = [];
+                            item.classList.remove('selected');
+                            Promise.resolve(planRoute()).then(() => {
+                                if (map && currentRoute && routeCoordinates.length) {
+                                    const from = routeCoordinates[0], to = routeCoordinates[routeCoordinates.length - 1];
+                                    map.fitBounds([from, to], { padding: 100, maxZoom: 12.5, duration: 800 });
+                                }
+                            });
+                        }
+                    };
+                    tick.addEventListener('change', onToggle);
+                    item.addEventListener('click', (e) => { if (!e.target.classList.contains('charging-tick')) { tick.checked = !tick.checked; onToggle(); } });
+                });
+            }
+        }
+        
+        // Update loop: demo sim or real GPS
+        function updateDriving() {
+            // GPS-only: real nav with no route – still follow position and update UI
+            if (!currentRoute) {
+                if (isRealNav && lastGpsPos && isNavigating) {
+                    const indicatedSpeed = (lastGpsPos.speed != null) ? Math.round(lastGpsPos.speed) : 0;
+                    document.getElementById('speedValue').textContent = indicatedSpeed;
+                    document.getElementById('speedGaugesContainer').style.display = 'flex';
+                    document.getElementById('hudTime').textContent = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
+                    updateNavCameraAndGuidance();
+                }
+                return;
+            }
+            const startBattery = parseInt(document.getElementById('startBatterySlicer').value);
+            const demoSpeedMult = parseInt(document.getElementById('demoSpeedSlicer')?.value || 10);
+            
+            if (isRealNav && lastGpsPos) {
+                const totalDistM = currentRoute.distance || 1;
+                const totalDistKm = totalDistM / 1000;
+                const proj = projectOntoRoute([lastGpsPos.lng, lastGpsPos.lat], routeCoordinates);
+                if (proj && proj.distKm < SNAP_TO_ROUTE_THRESHOLD_KM && totalDistKm > 0) {
+                    simulatedProgress = Math.min(proj.distAlong / totalDistKm, 1);
+                } else {
+                    const idx = findNearestRouteIndex([lastGpsPos.lng, lastGpsPos.lat], routeCoordinates);
+                    simulatedProgress = Math.min(idx / Math.max(1, routeCoordinates.length - 1), 1);
+                }
+                simulatedSpeed = lastGpsPos.speed || simulatedSpeed || 0;
+            } else if (isDemoMode) {
+                // Demo: 1x = real-time; use elapsed time for smooth, accurate speed
+                simulatedSpeed = Math.max(20, Math.min(160, parseInt(document.getElementById('demoCarSpeedSlicer')?.value || 60)));
+                const totalDistM = currentRoute.distance || 1;
+                const progressPerSec = totalDistM > 0 ? (simulatedSpeed / 3.6) / totalDistM : 0;
+                const now = Date.now();
+                if (lastDemoTime === 0) lastDemoTime = now;
+                const elapsedSec = (now - lastDemoTime) / 1000;
+                lastDemoTime = now;
+                simulatedProgress = Math.min(simulatedProgress + progressPerSec * elapsedSec * demoSpeedMult, 1);
+            } else if (isRealNav && !lastGpsPos) {
+                // Real nav but waiting for GPS - use route start
+                simulatedProgress = 0;
+                simulatedSpeed = 0;
+            } else {
+                return;
+            }
+            
+            const indicatedSpeed = (isRealNav && lastGpsPos && lastGpsPos.speed != null) ? Math.round(lastGpsPos.speed) : Math.round(simulatedSpeed * 1.02);
+            document.getElementById('speedValue').textContent = indicatedSpeed;
+            document.getElementById('speedGaugesContainer').style.display = (isDemoMode || isRealNav) ? 'flex' : 'none';
+            
+            const totalDist = currentRoute.distance / 1000;
+            const doneDist = totalDist * simulatedProgress;
+            document.getElementById('tripProgressFill').style.width = (simulatedProgress * 100) + '%';
+            document.getElementById('tripProgressCar').style.left = (simulatedProgress * 100) + '%';
+            const progCar = document.getElementById('tripProgressCar');
+            progCar.innerHTML = getNavIconHTML(selectedNavIcon, 36);
+            document.getElementById('tripProgressText').textContent = `${doneDist.toFixed(1)} km / ${totalDist.toFixed(1)} km`;
+            
+            const realistic = calculateRealisticRange();
+            const pctPerKm = realistic > 0 ? 100 / realistic : 0.5;
+            const used = doneDist * pctPerKm;
+            simulatedCharge = Math.max(0, startBattery - used);
+            document.getElementById('currentCharge').textContent = Math.round(simulatedCharge) + '%';
+            const headerChargeVal = document.getElementById('headerChargeValue');
+            if (headerChargeVal) headerChargeVal.textContent = Math.round(simulatedCharge) + '%';
+            
+            const legs = currentRoute.legs || [];
+            let endChargeAtArrival = simulatedCharge;
+            if (legs.length > 0 && lastRouteChargingAdds.length >= 0) {
+                const totalDistM = currentRoute.distance || 1;
+                const doneDistM = totalDistM * simulatedProgress;
+                let cum = 0;
+                let currentLegIdx = 0;
+                for (let i = 0; i < legs.length; i++) {
+                    cum += legs[i].distance || 0;
+                    if (cum >= doneDistM) { currentLegIdx = i; break; }
+                    currentLegIdx = i;
+                }
+                const chargeToAddDef = parseInt(document.getElementById('chargeToAddSlicer')?.value || 20);
+                endChargeAtArrival = simulatedCharge;
+                for (let i = currentLegIdx; i < legs.length; i++) {
+                    const legDistKm = (legs[i].distance || 0) / 1000;
+                    const consumptionPct = legDistKm * pctPerKm;
+                    endChargeAtArrival -= consumptionPct;
+                    if (i < legs.length - 1 && i >= lastRouteUserStopsCount) {
+                        const add = lastRouteChargingAdds[i - lastRouteUserStopsCount] ?? chargeToAddDef;
+                        endChargeAtArrival = Math.min(100, endChargeAtArrival + add);
+                    }
+                }
+            } else {
+                const remainingDist = totalDist * (1 - simulatedProgress);
+                const remainingConsumptionPct = remainingDist * pctPerKm;
+                endChargeAtArrival = Math.max(0, simulatedCharge - remainingConsumptionPct);
+            }
+            document.getElementById('endCharge').textContent = Math.round(Math.max(0, endChargeAtArrival));
+            
+            const now = new Date();
+            document.getElementById('hudTime').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+            
+            if (isNavigating) updateNavCameraAndGuidance();
+            
+        }
+        
+        function findNearestRouteIndex(pos, coords) {
+            let minDist = Infinity, closestIdx = 0;
+            const [lng, lat] = Array.isArray(pos) ? pos : [pos.lng || pos.longitude, pos.lat || pos.latitude];
+            for (let i = 0; i < coords.length; i++) {
+                const d = distHaversine(lat, lng, coords[i][1], coords[i][0]);
+                if (d < minDist) { minDist = d; closestIdx = i; }
+            }
+            return closestIdx;
+        }
+        
+        setInterval(updateDriving, 100);
+        setInterval(updateMapStyle, 60000);
+        setInterval(() => {
+            if (map && map.getLayer('route-layer-glow')) {
+                const t = (Date.now() / 600) % (2 * Math.PI);
+                map.setPaintProperty('route-layer-glow', 'line-opacity', 0.35 + 0.25 * (Math.sin(t) + 1) / 2);
+            }
+        }, 80);
+        
+        document.getElementById('planRouteBtn').addEventListener('click', planRoute);
+        document.getElementById('fromCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('fromInput'));
+        document.getElementById('toCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('toInput'));
+        document.getElementById('addStopBtn').addEventListener('click', () => {
+            const list = document.getElementById('stopsList');
+            const row = document.createElement('div');
+            row.className = 'stop-row';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'route-input';
+            input.placeholder = 'Stop address';
+            input.setAttribute('autocomplete', 'off');
+            input.setAttribute('dir', 'auto');
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'remove-stop-btn';
+            rm.textContent = '×';
+            rm.title = 'Remove stop';
+            rm.addEventListener('click', () => row.remove());
+            row.appendChild(input);
+            row.appendChild(rm);
+            list.appendChild(row);
+        });
+        const leftPanel = document.getElementById('leftPanel');
+        const mainContent = document.querySelector('.main-content');
+        document.getElementById('saveGoBtn').addEventListener('click', () => {
+            leftPanel.classList.remove('open');
+        });
+        function openLeftPanel() { leftPanel.classList.add('open'); }
+        document.getElementById('tripSetupFab').addEventListener('click', openLeftPanel);
+        document.getElementById('menuReopenBtn').addEventListener('click', openLeftPanel);
+        document.getElementById('chargingReopenBtn').addEventListener('click', openLeftPanel);
+        
+        document.getElementById('navRecenter').addEventListener('click', () => {
+            cameraFollowCar = true;
+            userZoom = null;
+            userPitch = null;
+        });
+        document.getElementById('navZoomIn').addEventListener('click', () => {
+            if (!map) return;
+            cameraFollowCar = false;
+            map.zoomIn({ duration: 400 });
+            setTimeout(() => { userZoom = map.getZoom(); userPitch = map.getPitch(); }, 450);
+        });
+        document.getElementById('navZoomOut').addEventListener('click', () => {
+            if (!map) return;
+            cameraFollowCar = false;
+            map.zoomOut({ duration: 400 });
+            setTimeout(() => { userZoom = map.getZoom(); userPitch = map.getPitch(); }, 450);
+        });
+        document.getElementById('navTiltUp').addEventListener('click', () => {
+            if (!map) return;
+            cameraFollowCar = false;
+            const p = Math.min(85, map.getPitch() + 15);
+            map.easeTo({ pitch: p, duration: 400 });
+            setTimeout(() => { userPitch = p; userZoom = map.getZoom(); }, 450);
+        });
+        document.getElementById('navTiltDown').addEventListener('click', () => {
+            if (!map) return;
+            cameraFollowCar = false;
+            const p = Math.max(0, map.getPitch() - 15);
+            map.easeTo({ pitch: p, duration: 400 });
+            setTimeout(() => { userPitch = p; userZoom = map.getZoom(); }, 450);
+        });
+        function stopNavigation() {
+            isDemoMode = false;
+            isNavigating = false;
+            isRealNav = false;
+            if (gpsWatchId) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+            document.getElementById('runDemoBtn').disabled = false;
+            document.getElementById('runDemoBtn').style.display = 'inline-block';
+            document.getElementById('stopSimBtn').disabled = true;
+            document.getElementById('stopSimBtn').style.display = 'none';
+            document.getElementById('startNavBtn').disabled = false;
+            document.getElementById('startNavBtn').textContent = '▶ Start Real Navigation';
+            document.getElementById('startNavBtn').style.background = '';
+            document.getElementById('stopNavFloating').style.display = 'none';
+            mainContent.classList.remove('navigating');
+            window.speechSynthesis?.cancel();
+            currentStreetName = '';
+            if (carMarker) { carMarker.remove(); carMarker = null; }
+            document.getElementById('speedGaugesContainer').style.display = 'none';
+            document.getElementById('mapNavControls').classList.remove('visible');
+            if (map && currentRoute && routeCoordinates.length) {
+                if (startMarker && endMarker) {
+                    startMarker.setLngLat(routeCoordinates[0]).addTo(map);
+                    endMarker.setLngLat(routeCoordinates[routeCoordinates.length - 1]).addTo(map);
+                }
+                const from = routeCoordinates[0], to = routeCoordinates[routeCoordinates.length - 1];
+                map.fitBounds([from, to], { padding: 100, maxZoom: 12.5, duration: 800 });
+            }
+        }
+        document.getElementById('stopNavFloating').addEventListener('click', stopNavigation);
+        
+        // Map click for start/destination
+        document.getElementById('clickStartBtn').addEventListener('click', () => {
+            mapClickMode = mapClickMode === 'start' ? null : 'start';
+            document.getElementById('clickStartBtn').classList.toggle('active', mapClickMode === 'start');
+            document.getElementById('clickDestBtn').classList.remove('active');
+            map.getCanvas().style.cursor = mapClickMode ? 'crosshair' : '';
+        });
+        document.getElementById('clickDestBtn').addEventListener('click', () => {
+            mapClickMode = mapClickMode === 'destination' ? null : 'destination';
+            document.getElementById('clickDestBtn').classList.toggle('active', mapClickMode === 'destination');
+            document.getElementById('clickStartBtn').classList.remove('active');
+            document.getElementById('clickStopBtn').classList.remove('active');
+            map.getCanvas().style.cursor = mapClickMode ? 'crosshair' : '';
+        });
+        document.getElementById('clickStopBtn').addEventListener('click', () => {
+            mapClickMode = mapClickMode === 'stop' ? null : 'stop';
+            document.getElementById('clickStopBtn').classList.toggle('active', mapClickMode === 'stop');
+            document.getElementById('clickStartBtn').classList.remove('active');
+            document.getElementById('clickDestBtn').classList.remove('active');
+            map.getCanvas().style.cursor = mapClickMode ? 'crosshair' : '';
+        });
+        
+        map.on('click', async (e) => {
+            if (!mapClickMode) return;
+            const { lng, lat } = e.lngLat;
+            map.getCanvas().style.cursor = '';
+            const name = await reverseGeocode(lng, lat);
+            if (mapClickMode === 'start') {
+                fromCoordManual = [lng, lat];
+                document.getElementById('fromInput').value = name;
+                document.getElementById('clickStartBtn').classList.remove('active');
+                updateStartEndPinsFromCoords();
+            } else if (mapClickMode === 'destination') {
+                toCoordManual = [lng, lat];
+                document.getElementById('toInput').value = name;
+                document.getElementById('clickDestBtn').classList.remove('active');
+                updateStartEndPinsFromCoords();
+            } else if (mapClickMode === 'stop') {
+                const list = document.getElementById('stopsList');
+                const row = document.createElement('div');
+                row.className = 'stop-row';
+                row.setAttribute('data-lng', lng);
+                row.setAttribute('data-lat', lat);
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'route-input';
+                input.placeholder = 'Stop address';
+                input.value = name;
+                input.setAttribute('autocomplete', 'off');
+                input.setAttribute('dir', 'auto');
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'remove-stop-btn';
+                rm.textContent = '×';
+                rm.title = 'Remove stop';
+                rm.addEventListener('click', () => row.remove());
+                row.appendChild(input);
+                row.appendChild(rm);
+                list.appendChild(row);
+                document.getElementById('clickStopBtn').classList.remove('active');
+            }
+            mapClickMode = null;
+        });
+        
+        // Run Demo
+        document.getElementById('runDemoBtn').addEventListener('click', () => {
+            if (!currentRoute) return;
+            lastDemoTime = 0;
+            isDemoMode = true;
+            isRealNav = false;
+            isNavigating = true;
+            if (gpsWatchId) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+            document.getElementById('runDemoBtn').disabled = true;
+            document.getElementById('runDemoBtn').style.display = 'none';
+            document.getElementById('stopSimBtn').disabled = false;
+            document.getElementById('stopSimBtn').style.display = 'inline-block';
+            document.getElementById('stopNavFloating').style.display = 'block';
+            mainContent.classList.add('navigating');
+            document.getElementById('startNavBtn').disabled = true;
+            lastSpokenInstruction = '';
+            document.getElementById('navInstruction').style.display = 'flex';
+            if (startMarker) startMarker.remove();
+            if (endMarker) endMarker.remove();
+            if (document.getElementById('audioGuidance')?.checked) speakGuidance('Demo started. ' + (document.getElementById('navAction').textContent || 'Follow the route'));
+        });
+        
+        // Stop Demo
+        document.getElementById('stopSimBtn').addEventListener('click', () => {
+            isDemoMode = false;
+            isNavigating = false;
+            document.getElementById('runDemoBtn').disabled = false;
+            document.getElementById('runDemoBtn').style.display = 'inline-block';
+            document.getElementById('stopSimBtn').disabled = true;
+            document.getElementById('stopSimBtn').style.display = 'none';
+            document.getElementById('startNavBtn').disabled = false;
+            document.getElementById('stopNavFloating').style.display = 'none';
+            mainContent.classList.remove('navigating');
+            window.speechSynthesis?.cancel();
+            if (carMarker) { carMarker.remove(); carMarker = null; }
+            document.getElementById('speedGaugesContainer').style.display = 'none';
+            document.getElementById('mapNavControls').classList.remove('visible');
+            if (currentRoute && routeCoordinates.length && startMarker && endMarker) {
+                startMarker.setLngLat(routeCoordinates[0]).addTo(map);
+                endMarker.setLngLat(routeCoordinates[routeCoordinates.length - 1]).addTo(map);
+            }
+        });
+        
+        // Start Real Navigation (GPS)
+        document.getElementById('startNavBtn').addEventListener('click', () => {
+            if (!currentRoute) return;
+            isDemoMode = false;
+            document.getElementById('runDemoBtn').disabled = true;
+            document.getElementById('stopSimBtn').style.display = 'none';
+            document.getElementById('runDemoBtn').style.display = 'inline-block';
+            isRealNav = !isRealNav;
+            isNavigating = isRealNav;
+            document.getElementById('stopNavFloating').style.display = isRealNav ? 'block' : 'none';
+            mainContent.classList.toggle('navigating', isRealNav);
+            document.getElementById('startNavBtn').textContent = isRealNav ? '⏹ Stop Navigation' : '▶ Start Real Navigation';
+            document.getElementById('startNavBtn').style.background = isRealNav ? 'linear-gradient(135deg, #ff5722, #e64a19)' : 'linear-gradient(135deg, var(--accent-green), #00cc6a)';
+            if (isRealNav) {
+                lastSpokenInstruction = '';
+                document.getElementById('navInstruction').style.display = 'flex';
+                if (startMarker) startMarker.remove();
+                if (endMarker) endMarker.remove();
+                if (document.getElementById('audioGuidance')?.checked) speakGuidance('Real navigation started. Use your GPS location.');
+                gpsWatchId = navigator.geolocation.watchPosition(
+                    pos => {
+                        const heading = (pos.coords.heading != null && !isNaN(pos.coords.heading)) ? pos.coords.heading : null;
+                        lastGpsPos = { lng: pos.coords.longitude, lat: pos.coords.latitude, speed: pos.coords.speed != null ? pos.coords.speed * 3.6 : null, heading: heading };
+                        lastGpsTime = Date.now();
+                    },
+                    err => console.warn('GPS error:', err),
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+                );
+            } else {
+                if (gpsWatchId) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+                lastGpsPos = null;
+                window.speechSynthesis?.cancel();
+                if (carMarker) { carMarker.remove(); carMarker = null; }
+                document.getElementById('speedGaugesContainer').style.display = 'none';
+                if (currentRoute && routeCoordinates.length && startMarker && endMarker) {
+                    startMarker.setLngLat(routeCoordinates[0]).addTo(map);
+                    endMarker.setLngLat(routeCoordinates[routeCoordinates.length - 1]).addTo(map);
+                }
+                document.getElementById('runDemoBtn').disabled = false;
+            }
+        });
+        
+        // Settings modal
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.add('show');
+        });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.remove('show');
+        });
+        
+        const iconOptionsContainer = document.getElementById('iconOptions');
+        const ICON_LABELS = { 'car-black': 'Black sedan', 'car-blue': 'Blue SUV', 'car-white': 'White sedan', 'car-suv-white': 'White SUV' };
+        Object.keys(NAV_ICONS).forEach(key => {
+            const div = document.createElement('div');
+            div.className = 'icon-option' + (selectedNavIcon === key ? ' selected' : '');
+            div.innerHTML = `<span class="icon-preview">${getNavIconSVG(key, 32)}</span><span>${ICON_LABELS[key] || key}</span>`;
+            div.addEventListener('click', () => {
+                selectedNavIcon = key;
+                iconOptionsContainer.querySelectorAll('.icon-option').forEach(o => o.classList.remove('selected'));
+                div.classList.add('selected');
+                document.getElementById('tripProgressCar').innerHTML = getNavIconHTML(key, 36);
+            });
+            iconOptionsContainer.appendChild(div);
+        });
+        
+        // Car icon popover - click car during navigation to change icon
+        const carIconPopover = document.getElementById('carIconPopover');
+        const carIconPopoverIcons = document.getElementById('carIconPopoverIcons');
+        Object.keys(NAV_ICONS).forEach(key => {
+            const span = document.createElement('span');
+            span.innerHTML = getNavIconSVG(key, 36);
+            span.title = ICON_LABELS[key] || key;
+            span.addEventListener('click', () => {
+                selectedNavIcon = key;
+                document.getElementById('tripProgressCar').innerHTML = getNavIconHTML(key, 36);
+                if (carMarker) carMarker.getElement().innerHTML = getNavIconHTML(key, 50);
+                carIconPopover.style.display = 'none';
+            });
+            carIconPopoverIcons.appendChild(span);
+        });
+        document.getElementById('tripProgressCar').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isNavigating) {
+                carIconPopover.style.display = carIconPopover.style.display === 'none' ? 'block' : 'none';
+            }
+        });
+        carIconPopover?.addEventListener('click', e => e.stopPropagation());
+        document.addEventListener('click', (e) => {
+            if (carIconPopover && !carIconPopover.contains(e.target) && !document.getElementById('tripProgressCar').contains(e.target)) {
+                carIconPopover.style.display = 'none';
+            }
+        });
+        
+        setupSearchAutocomplete('fromInput', 'fromDropdown');
+        setupSearchAutocomplete('toInput', 'toDropdown');
+        
+        initCarGrid();
+        initSlicers();
+        calculateRealisticRange();
+        updateMapStyle();
+        
+        document.getElementById('hudTime').textContent = new Date().getHours().toString().padStart(2,'0') + ':' + new Date().getMinutes().toString().padStart(2,'0');
+        document.getElementById('tripProgressCar').innerHTML = getNavIconHTML(selectedNavIcon, 36);
+    </script>
+</body>
+</html>
