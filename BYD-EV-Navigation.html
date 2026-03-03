@@ -255,7 +255,7 @@
             cursor: pointer;
             box-shadow: 0 4px 20px rgba(0,212,255,0.4);
         }
-        .trip-setup-panel:not(.open) + .trip-setup-fab { display: flex; align-items: center; justify-content: center; }
+        .left-panel:not(.open) ~ .trip-setup-fab { display: flex; align-items: center; justify-content: center; }
         .save-go-btn {
             width: 100%;
             padding: 16px 24px;
@@ -935,292 +935,10 @@
         }
         .header-charge-icon { font-size: 1.1rem; filter: drop-shadow(0 0 6px rgba(0,255,136,0.5)); }
         
-        /* Reference layout: left nav | map | right info + bottom bar */
-        .layout-row {
-            display: flex;
-            flex: 1;
-            min-height: 0;
-            position: relative;
-        }
-        .nav-panel {
-            width: 260px;
-            flex-shrink: 0;
-            background: linear-gradient(180deg, rgba(18,26,42,0.98), rgba(10,14,23,0.98));
-            border-right: 1px solid var(--border-glow);
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            box-shadow: 2px 0 20px rgba(0,0,0,0.3);
-        }
-        .nav-panel-section-title {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--accent-blue);
-            letter-spacing: 1.2px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .nav-panel-section-title .pin { font-size: 0.9rem; }
-        .nav-panel .search-dest-wrap {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .nav-panel .search-dest-wrap .route-input {
-            flex: 1;
-            min-width: 0;
-            padding: 10px 12px 10px 36px;
-            font-size: 0.9rem;
-            border-radius: 10px;
-            background: rgba(10,14,23,0.8);
-            border: 1px solid var(--border-glow);
-            color: var(--text-primary);
-        }
-        .nav-panel .search-dest-wrap .search-dest-pin {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1rem;
-            opacity: 0.8;
-        }
-        .nav-panel .search-dest-wrap .mic-btn {
-            flex-shrink: 0;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid var(--border-glow);
-            background: rgba(0,212,255,0.15);
-            color: var(--accent-blue);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-        }
-        .quick-access-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-        }
-        .quick-access-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 10px 6px;
-            border-radius: 10px;
-            border: 1px solid var(--border-glow);
-            background: rgba(10,14,23,0.6);
-            color: var(--text-secondary);
-            font-size: 0.65rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .quick-access-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
-        .quick-access-btn .qicon { font-size: 1.1rem; }
-        .route-options-sidebar { margin-top: 4px; }
-        .route-option-sidebar-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 12px 14px;
-            margin-bottom: 8px;
-            background: rgba(10,14,23,0.7);
-            border: 1px solid rgba(0,212,255,0.25);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .route-option-sidebar-row:hover { border-color: var(--accent-blue); background: rgba(0,212,255,0.1); }
-        .route-option-sidebar-row.selected { border-color: var(--accent-green); background: rgba(0,255,136,0.12); box-shadow: 0 0 16px rgba(0,255,136,0.2); }
-        .route-option-sidebar-row .route-opt-icon { flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px; background: rgba(0,212,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-        .route-option-sidebar-row .route-opt-body { flex: 1; min-width: 0; }
-        .route-option-sidebar-row .route-opt-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; margin-bottom: 2px; }
-        .route-option-sidebar-row .route-opt-meta { font-size: 0.75rem; color: var(--accent-blue); }
-        .route-option-sidebar-row .route-opt-benefits { font-size: 0.72rem; color: var(--text-secondary); margin-top: 4px; }
-        .route-option-sidebar-row .route-opt-battery { font-size: 0.75rem; color: var(--accent-green); margin-top: 4px; font-weight: 500; }
-        .sidebar-use-route-wrap { margin-top: 10px; }
-        .traffic-section { margin-top: 4px; }
-        .traffic-toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        .traffic-legend {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-        }
-        .traffic-legend span { display: flex; align-items: center; gap: 4px; }
-        .traffic-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
-        .traffic-legend .dot.heavy { background: #ef4444; }
-        .traffic-legend .dot.moderate { background: #f97316; }
-        .traffic-legend .dot.light { background: #22c55e; }
-        .traffic-legend .dot.none { background: #64748b; }
-        .right-panel {
-            width: 280px;
-            flex-shrink: 0;
-            background: linear-gradient(180deg, rgba(18,26,42,0.98), rgba(10,14,23,0.98));
-            border-left: 1px solid var(--border-glow);
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            box-shadow: -2px 0 20px rgba(0,0,0,0.3);
-        }
-        .right-panel-time { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px; }
-        .right-panel-weather { font-size: 0.9rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
-        .right-panel-section-title { font-size: 0.7rem; font-weight: 700; color: var(--accent-blue); letter-spacing: 1px; margin-bottom: 8px; }
-        .right-panel-trip-grid { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
-        .right-panel-trip-grid .row { display: flex; justify-content: space-between; }
-        .right-panel-trip-grid .row .val { color: var(--accent-blue); font-weight: 600; }
-        .right-panel-next-turn-box {
-            background: rgba(0,212,255,0.08);
-            border: 1px solid var(--border-glow);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .right-panel-next-turn-box .turn-icon { width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; }
-        .right-panel-next-turn-box .turn-text { flex: 1; min-width: 0; }
-        .right-panel-next-turn-box .turn-dist { font-weight: 700; color: var(--accent-blue); font-size: 1rem; }
-        .right-panel-next-turn-box .turn-road { font-size: 0.9rem; color: var(--text-primary); margin-top: 2px; }
-        .right-panel-pois { display: flex; flex-direction: column; gap: 8px; }
-        .right-panel-poi-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            border: 1px solid var(--border-glow);
-            background: rgba(10,14,23,0.5);
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-        .right-panel-poi-row .poi-icon { font-size: 1.1rem; }
-        .right-panel-poi-row .poi-name { flex: 1; }
-        .right-panel-poi-row .poi-dist { color: var(--accent-blue); font-weight: 600; }
-        .map-wrap {
-            flex: 1;
-            min-width: 0;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        .map-wrap .map-container {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
-        }
-        .bottom-bar {
-            flex-shrink: 0;
-            height: 72px;
-            background: linear-gradient(0deg, rgba(10,14,23,0.98), rgba(18,26,42,0.95));
-            border-top: 1px solid var(--border-glow);
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            gap: 24px;
-        }
-        .bottom-bar-speed {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .bottom-bar-speed .speed-circle {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-blue);
-            background: rgba(0,212,255,0.1);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        .bottom-bar-speed .speed-circle .val { font-size: 1.25rem; font-weight: 700; color: var(--accent-blue); line-height: 1.2; }
-        .bottom-bar-speed .speed-circle .unit { font-size: 0.6rem; color: var(--text-secondary); }
-        .bottom-bar-speed .limit-circle {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: 2px solid rgba(239,68,68,0.7);
-            background: rgba(239,68,68,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: #f87171;
-        }
-        .bottom-bar-road {
-            flex: 1;
-            min-width: 0;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-        .bottom-bar-road .road-name { color: var(--text-primary); font-weight: 600; }
-        .bottom-bar-nav-menu {
-            display: flex;
-            gap: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-secondary);
-        }
-        .bottom-bar-nav-menu button {
-            background: none;
-            border: none;
-            color: inherit;
-            cursor: pointer;
-            padding: 4px 0;
-            font: inherit;
-        }
-        .bottom-bar-nav-menu button:hover { color: var(--accent-blue); }
-        .bottom-bar-nav-menu button.active { color: var(--accent-blue); }
-        .trip-setup-panel {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 420px;
-            max-width: calc(100vw - 40px);
-            background: linear-gradient(180deg, rgba(18,26,42,0.98), rgba(10,14,23,0.98));
-            border-right: 1px solid var(--border-glow);
-            overflow-y: auto;
-            padding: 20px;
-            z-index: 60;
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: none;
-        }
-        .trip-setup-panel.open { transform: translateX(0); box-shadow: 8px 0 32px rgba(0,0,0,0.5); }
-        .nav-panel .from-row { margin-bottom: 8px; }
-        .nav-panel .from-row .route-input { padding: 8px 12px; font-size: 0.85rem; }
-        
         /* Responsive */
         @media (max-width: 900px) {
-            .layout-row { flex-wrap: wrap; }
-            .nav-panel { width: 100%; max-height: 35vh; }
-            .right-panel { width: 100%; max-height: 30vh; }
+            .main-content { flex-direction: column; }
+            .left-panel { width: 100%; max-height: 45vh; }
             .speed-gauges-container { bottom: 250px; right: 12px; }
             .speed-display { width: 65px; height: 65px; }
             .speed-display .speed-value { font-size: 1.3rem; }
@@ -1233,6 +951,7 @@
             <div class="header-left">
                 <div class="header-left-col">
                     <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+                    <button class="route-btn plan-route-header-btn" id="planRouteBtn" title="Plan route from From/To below">Plan Route</button>
                 </div>
             </div>
             <div class="header-center"><div class="logo">EvNav-Hossam</div></div>
@@ -1249,91 +968,129 @@
             </div>
         </header>
         
-        <div class="main-content layout-row">
-            <!-- Left: Nav panel (destination, quick access, route options, traffic) -->
-            <aside class="nav-panel">
-                <div class="nav-panel-section">
-                    <div class="nav-panel-section-title"><span class="pin">📍</span> DESTINATION</div>
-                    <div class="from-row search-wrapper">
-                        <input type="text" class="route-input" id="fromInput" placeholder="From: Current Location" autocomplete="off" dir="auto">
-                        <button type="button" class="current-loc-btn" id="fromCurrentLocBtn" title="Set start to current location">📍</button>
-                        <div class="search-dropdown" id="fromDropdown"></div>
+        <div class="main-content">
+            <aside class="left-panel open" id="leftPanel">
+                <div class="panel-section">
+                    <h3>Select Your BYD EV</h3>
+                    <div class="car-grid" id="carGrid"></div>
+                </div>
+                <div class="panel-section">
+                    <h3>Trip Parameters</h3>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Temperature: <span class="slicer-value" id="tempVal">20°C</span></div>
+                        <input type="range" class="slicer" id="tempSlicer" min="-10" max="45" value="20">
                     </div>
-                    <div class="search-dest-wrap">
-                        <span class="search-dest-pin">📍</span>
-                        <input type="text" class="route-input" id="toInput" placeholder="Search Destination..." autocomplete="off" dir="auto">
-                        <button type="button" class="mic-btn" id="toMicBtn" title="Voice input">🎤</button>
-                        <div class="search-dropdown" id="toDropdown" style="left:0;right:0;top:100%;"></div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Passengers: <span class="slicer-value" id="passengersVal">1</span></div>
+                        <input type="range" class="slicer" id="passengersSlicer" min="1" max="7" value="1">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Trunk/Cargo Weight: <span class="slicer-value" id="weightVal">0 kg</span></div>
+                        <input type="range" class="slicer" id="weightSlicer" min="0" max="200" value="0">
+                    </div>
+                    <div class="slicer-group">
+                        <label class="route-option" style="margin-bottom:8px;"><input type="checkbox" id="acOn" checked> AC On (~1 kW; closer to outside temp = less drain)</label>
+                        <div class="slicer-label">AC Setting: <span class="slicer-value" id="acVal">23°C</span></div>
+                        <input type="range" class="slicer" id="acSlicer" min="18" max="28" value="23">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Starting Battery: <span class="slicer-value" id="startBatteryVal">100%</span></div>
+                        <input type="range" class="slicer" id="startBatterySlicer" min="20" max="100" value="100">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Target Charge at Arrival: <span class="slicer-value" id="targetChargeVal">40%</span></div>
+                        <input type="range" class="slicer" id="targetChargeSlicer" min="5" max="50" value="40">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Max Speed (km/h): <span class="slicer-value" id="maxSpeedVal">120</span></div>
+                        <input type="range" class="slicer" id="maxSpeedSlicer" min="60" max="160" value="120">
+                    </div>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Driving Style: <span class="slicer-value" id="drivingStyleVal">Moderate</span></div>
+                        <input type="range" class="slicer" id="drivingStyleSlicer" min="0" max="2" value="1" step="1">
+                    </div>
+                    <div class="slicer-group wind-from-weather">
+                        <div class="slicer-label">Wind (from weather): <span class="slicer-value" id="windVal">-- km/h</span></div>
+                        <div class="wind-note">Updated every 10 min from route location</div>
                     </div>
                 </div>
-                <div class="quick-access-row">
-                    <button type="button" class="quick-access-btn" data-quick="home"><span class="qicon">🏠</span> HOME</button>
-                    <button type="button" class="quick-access-btn" data-quick="work"><span class="qicon">💼</span> WORK</button>
-                    <button type="button" class="quick-access-btn" data-quick="favorites"><span class="qicon">⭐</span> FAVORITES</button>
-                    <button type="button" class="quick-access-btn" data-quick="recent"><span class="qicon">🕐</span> RECENT</button>
+                <div class="range-display">
+                    <div class="label">Realistic Range (CLTC −25% ≈ EPA)</div>
+                    <div class="value" id="realisticRange">-- km</div>
+                    <div class="sub">CLTC: <span id="cltcRange">--</span> → EPA: <span id="epaRange">--</span></div>
                 </div>
-                <div class="nav-panel-section">
-                    <div class="stops-header" style="margin-bottom:6px;">
-                        <span class="nav-panel-section-title">Stops (optional)</span>
-                        <div class="stops-btns">
-                            <button type="button" class="menu-reopen-btn add-stop-btn" id="addStopBtn" style="padding:6px 10px;font-size:0.75rem;">+ Add</button>
-                            <button type="button" class="click-mode-btn" id="clickStopBtn" style="padding:6px 8px;font-size:0.7rem;" title="Click map to add stop">📍</button>
-                        </div>
+                <div class="panel-section">
+                    <h3>Charging Stations on Route</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Plan a route first. EV stations along your route (from Mapbox &amp; OpenStreetMap) appear below. Tick one to add as a stop.</p>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Charge to add at stop: <span class="slicer-value" id="chargeToAddVal">20%</span></div>
+                        <input type="range" class="slicer" id="chargeToAddSlicer" min="10" max="80" value="20">
                     </div>
-                    <div class="stops-list" id="stopsList"></div>
+                    <div class="charging-stations" id="chargingStations"><p style="font-size:0.85rem;color:var(--text-secondary);">Plan a route to see EV chargers along the route. Click to add as a stop.</p></div>
                 </div>
-                <div class="nav-panel-section">
-                    <div class="nav-panel-section-title">ROUTE OPTIONS</div>
-                    <div class="route-options-sidebar">
-                        <div id="routeOptionsSidebarList"></div>
-                        <div class="sidebar-use-route-wrap" id="sidebarUseRouteWrap" style="display:none;">
-                            <button type="button" class="route-btn route-options-ok" id="sidebarUseRouteBtn" style="width:100%;">Use this route</button>
-                        </div>
+                <div class="panel-section">
+                    <h3>Demo</h3>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">Run a simulated drive along the route.</p>
+                    <div class="slicer-group">
+                        <div class="slicer-label">Demo speed: <span class="slicer-value" id="demoSpeedVal">1x</span></div>
+                        <input type="range" class="slicer" id="demoSpeedSlicer" min="1" max="20" value="10">
+                        <div class="slicer-label" style="margin-top:12px;">Car speed (demo): <span class="slicer-value" id="demoCarSpeedVal">60 km/h</span></div>
+                        <input type="range" class="slicer" id="demoCarSpeedSlicer" min="20" max="160" value="60">
                     </div>
-                    <label class="route-option" style="margin-top:8px;font-size:0.8rem;"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
+                    <button class="route-btn demo-btn" id="runDemoBtn" disabled style="width:100%;margin-bottom:8px;">▶ Run Demo</button>
+                    <button class="route-btn stop-btn" id="stopSimBtn" disabled style="display:none;width:100%;">⏹ Stop Demo</button>
                 </div>
-                <div class="nav-panel-section traffic-section">
-                    <div class="traffic-toggle-row">
-                        <span>Traffic</span>
-                        <label class="traffic-toggle" style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-                            <input type="checkbox" id="trafficToggle" checked>
-                            <span class="traffic-dot" style="width:10px;height:10px;border-radius:50%;background:var(--accent-green);"></span>
-                        </label>
-                    </div>
-                    <div class="traffic-legend">
-                        <span><span class="dot heavy"></span> Heavy</span>
-                        <span><span class="dot moderate"></span> Moderate</span>
-                        <span><span class="dot light"></span> Light</span>
-                        <span><span class="dot none"></span> No traffic</span>
-                    </div>
-                </div>
-                <button class="route-btn plan-route-header-btn" id="planRouteBtn" style="width:100%;margin-top:4px;" title="Plan route">Plan Route</button>
-                <button class="start-nav-btn" id="startNavBtn" disabled style="width:100%;margin-top:6px;">▶ Start Navigation</button>
-                <button class="menu-reopen-btn" id="menuReopenBtn" style="width:100%;" title="Trip settings &amp; demo">☰ Controls</button>
-                <button class="menu-reopen-btn" id="chargingReopenBtn" style="width:100%;" title="Charging stations">🔌 Charging</button>
+                <button class="save-go-btn" id="saveGoBtn">Save & Go to Map</button>
             </aside>
-            
-            <!-- Center: Map -->
-            <div class="map-wrap">
-                <div class="map-container">
-                    <div id="map"></div>
-                    <div class="map-overlay">
-                        <div class="click-mode-btns">
-                            <button class="click-mode-btn" id="clickStartBtn">📍 Click map for Start</button>
-                            <button class="click-mode-btn" id="clickDestBtn">🎯 Click map for Destination</button>
+            <button class="trip-setup-fab" id="tripSetupFab" title="Open menu">☰</button>
+            <div class="map-container">
+                <div id="map"></div>
+                <div class="map-overlay">
+                    <div class="click-mode-btns">
+                        <button class="click-mode-btn" id="clickStartBtn">📍 Click map for Start</button>
+                        <button class="click-mode-btn" id="clickDestBtn">🎯 Click map for Destination</button>
+                    </div>
+                    <div class="route-inputs">
+                        <div class="search-wrapper">
+                            <input type="text" class="route-input" id="fromInput" placeholder="From: Current Location" autocomplete="off" dir="auto">
+                            <button type="button" class="current-loc-btn" id="fromCurrentLocBtn" title="Set start to current location address">📍</button>
+                            <div class="search-dropdown" id="fromDropdown"></div>
                         </div>
-                        <div class="nav-hints-overlay">
-                            <div class="nav-instruction" id="navInstruction" style="display: none;">
-                                <div class="maneuver-icon" id="navManeuverIcon"></div>
-                                <div class="nav-instruction-text">
-                                    <div class="distance" id="navDistance" dir="auto">In 500 m</div>
-                                    <div class="action" id="navAction" dir="auto">Turn right</div>
-                                </div>
+                        <div class="search-wrapper">
+                            <input type="text" class="route-input" id="toInput" placeholder="To: Enter destination (e.g. Dandy Mega Mall)" autocomplete="off" dir="auto">
+                            <button type="button" class="current-loc-btn" id="toCurrentLocBtn" title="Set destination to current location address">📍</button>
+                            <div class="search-dropdown" id="toDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="stops-section">
+                        <div class="stops-header">
+                            <span class="stops-label">Stops (optional)</span>
+                            <div class="stops-btns">
+                                <button type="button" class="menu-reopen-btn add-stop-btn" id="addStopBtn">+ Add stop</button>
+                                <button type="button" class="click-mode-btn" id="clickStopBtn" title="Click map to add a stop">📍 Pin on map</button>
                             </div>
-                            <div class="junction-view" id="junctionView">
-                                <div class="junction-drawing" id="junctionDrawing"></div>
-                                <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                        </div>
+                        <div class="stops-list" id="stopsList"></div>
+                    </div>
+                    <div class="route-actions-row" id="routeActionsRow">
+                        <button class="menu-reopen-btn" id="menuReopenBtn" title="Open menu">☰ Menu</button>
+                        <button class="menu-reopen-btn" id="chargingReopenBtn" title="Charging stations">🔌 Charging</button>
+                    </div>
+                    <div class="route-options" id="routeOptionsRow">
+                        <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
+                        <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
+                    </div>
+                    <div class="nav-hints-overlay">
+                        <div class="nav-instruction" id="navInstruction" style="display: none;">
+                            <div class="maneuver-icon" id="navManeuverIcon"></div>
+                            <div class="nav-instruction-text">
+                                <div class="distance" id="navDistance" dir="auto">In 500 m</div>
+                                <div class="action" id="navAction" dir="auto">Turn right</div>
                             </div>
+                        </div>
+                        <div class="junction-view" id="junctionView">
+                            <div class="junction-drawing" id="junctionDrawing"></div>
+                            <div class="junction-label" id="junctionLabel" dir="auto"></div>
                         </div>
                     </div>
                 </div>
@@ -1395,127 +1152,7 @@
                     </div>
                 </div>
             </div>
-            </div>
-            <!-- Right: Trip info, next turn, POIs -->
-            <aside class="right-panel">
-                <div class="right-panel-time" id="rightPanelTime">--:--</div>
-                <div class="right-panel-weather" id="rightPanelWeather"><span id="rightPanelTemp">--°C</span> <span id="rightPanelConditions">--</span></div>
-                <div class="right-panel-section-title">TRIP OVERVIEW</div>
-                <div class="right-panel-trip-grid">
-                    <div class="row"><span>DISTANCE</span><span class="val" id="rightPanelDistance">-- km</span></div>
-                    <div class="row"><span>ETA</span><span class="val" id="rightPanelEta">--</span></div>
-                    <div class="row"><span>DURATION</span><span class="val" id="rightPanelDuration">-- min</span></div>
-                    <div class="row"><span>BATTERY</span><span class="val" id="rightPanelBattery">--%</span></div>
-                </div>
-                <div class="right-panel-section-title">NEXT TURN</div>
-                <div class="right-panel-next-turn-box" id="rightPanelNextTurn">
-                    <div class="turn-icon" id="rightPanelTurnIcon">→</div>
-                    <div class="turn-text">
-                        <div class="turn-dist" id="rightPanelTurnDist">--</div>
-                        <div class="turn-road" id="rightPanelTurnRoad" dir="auto">--</div>
-                    </div>
-                </div>
-                <div class="right-panel-section-title">POINTS OF INTEREST</div>
-                <div class="right-panel-pois" id="rightPanelPois">
-                    <div class="right-panel-poi-row"><span class="poi-icon">🔌</span><span class="poi-name">Charging along route</span><span class="poi-dist" id="rightPanelPoiCharge">--</span></div>
-                </div>
-            </aside>
         </div>
-        <div class="bottom-bar">
-            <div class="bottom-bar-speed">
-                <div class="speed-circle">
-                    <span class="val" id="bottomBarSpeedVal">0</span>
-                    <span class="unit">km/h</span>
-                </div>
-                <div class="limit-circle" id="bottomBarLimit">80</div>
-            </div>
-            <div class="bottom-bar-road">
-                <span class="road-name" id="bottomBarRoadName">--</span>
-                <span id="bottomBarRoadDist">--</span>
-            </div>
-            <div class="bottom-bar-nav-menu">
-                <button type="button" class="bottom-nav-tab active" data-tab="map">MAP</button>
-                <button type="button" class="bottom-nav-tab" data-tab="trip">TRIP INFO</button>
-                <button type="button" class="bottom-nav-tab" id="bottomBarControlsBtn" data-tab="controls">CONTROLS</button>
-                <button type="button" class="bottom-nav-tab" data-tab="status">STATUS</button>
-            </div>
-        </div>
-        
-        <!-- Trip setup panel (car, params, charging, demo) - opens from Controls -->
-        <aside class="trip-setup-panel" id="leftPanel">
-            <div class="panel-section">
-                <h3>Select Your BYD EV</h3>
-                <div class="car-grid" id="carGrid"></div>
-            </div>
-            <div class="panel-section">
-                <h3>Trip Parameters</h3>
-                <div class="slicer-group">
-                    <div class="slicer-label">Temperature: <span class="slicer-value" id="tempVal">20°C</span></div>
-                    <input type="range" class="slicer" id="tempSlicer" min="-10" max="45" value="20">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Passengers: <span class="slicer-value" id="passengersVal">1</span></div>
-                    <input type="range" class="slicer" id="passengersSlicer" min="1" max="7" value="1">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Trunk/Cargo Weight: <span class="slicer-value" id="weightVal">0 kg</span></div>
-                    <input type="range" class="slicer" id="weightSlicer" min="0" max="200" value="0">
-                </div>
-                <div class="slicer-group">
-                    <label class="route-option" style="margin-bottom:8px;"><input type="checkbox" id="acOn" checked> AC On (~1 kW; closer to outside temp = less drain)</label>
-                    <div class="slicer-label">AC Setting: <span class="slicer-value" id="acVal">23°C</span></div>
-                    <input type="range" class="slicer" id="acSlicer" min="18" max="28" value="23">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Starting Battery: <span class="slicer-value" id="startBatteryVal">100%</span></div>
-                    <input type="range" class="slicer" id="startBatterySlicer" min="20" max="100" value="100">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Target Charge at Arrival: <span class="slicer-value" id="targetChargeVal">40%</span></div>
-                    <input type="range" class="slicer" id="targetChargeSlicer" min="5" max="50" value="40">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Max Speed (km/h): <span class="slicer-value" id="maxSpeedVal">120</span></div>
-                    <input type="range" class="slicer" id="maxSpeedSlicer" min="60" max="160" value="120">
-                </div>
-                <div class="slicer-group">
-                    <div class="slicer-label">Driving Style: <span class="slicer-value" id="drivingStyleVal">Moderate</span></div>
-                    <input type="range" class="slicer" id="drivingStyleSlicer" min="0" max="2" value="1" step="1">
-                </div>
-                <div class="slicer-group wind-from-weather">
-                    <div class="slicer-label">Wind (from weather): <span class="slicer-value" id="windVal">-- km/h</span></div>
-                    <div class="wind-note">Updated every 10 min from route location</div>
-                </div>
-            </div>
-            <div class="range-display">
-                <div class="label">Realistic Range (CLTC −25% ≈ EPA)</div>
-                <div class="value" id="realisticRange">-- km</div>
-                <div class="sub">CLTC: <span id="cltcRange">--</span> → EPA: <span id="epaRange">--</span></div>
-            </div>
-            <div class="panel-section">
-                <h3>Charging Stations on Route</h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px;">Plan a route first. EV stations along your route (from Mapbox &amp; OpenStreetMap) appear below. Tick one to add as a stop.</p>
-                <div class="slicer-group">
-                    <div class="slicer-label">Charge to add at stop: <span class="slicer-value" id="chargeToAddVal">20%</span></div>
-                    <input type="range" class="slicer" id="chargeToAddSlicer" min="10" max="80" value="20">
-                </div>
-                <div class="charging-stations" id="chargingStations"><p style="font-size:0.85rem;color:var(--text-secondary);">Plan a route to see EV chargers along the route. Click to add as a stop.</p></div>
-            </div>
-            <div class="panel-section">
-                <h3>Demo</h3>
-                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">Run a simulated drive along the route.</p>
-                <div class="slicer-group">
-                    <div class="slicer-label">Demo speed: <span class="slicer-value" id="demoSpeedVal">1x</span></div>
-                    <input type="range" class="slicer" id="demoSpeedSlicer" min="1" max="20" value="10">
-                    <div class="slicer-label" style="margin-top:12px;">Car speed (demo): <span class="slicer-value" id="demoCarSpeedVal">60 km/h</span></div>
-                    <input type="range" class="slicer" id="demoCarSpeedSlicer" min="20" max="160" value="60">
-                </div>
-                <button class="route-btn demo-btn" id="runDemoBtn" disabled style="width:100%;margin-bottom:8px;">▶ Run Demo</button>
-                <button class="route-btn stop-btn" id="stopSimBtn" disabled style="display:none;width:100%;">⏹ Stop Demo</button>
-            </div>
-            <button class="save-go-btn" id="saveGoBtn">Save & Go to Map</button>
-        </aside>
-        <button class="trip-setup-fab" id="tripSetupFab" title="Open Controls">☰</button>
         
         <!-- Route options modal (choose route before Start Nav / Demo) -->
         <div class="modal-overlay" id="routeOptionsModal">
@@ -2751,25 +2388,6 @@ out;`;
                 routeOptionsContext = { fromCoord, toCoord, waypoints, options, resolve };
                 const modal = document.getElementById('routeOptionsModal');
                 const listEl = document.getElementById('routeOptionsList');
-                const sidebarList = document.getElementById('routeOptionsSidebarList');
-                const sidebarUseWrap = document.getElementById('sidebarUseRouteWrap');
-                const renderRow = (opt, i) => {
-                    const distKm = (opt.distance / 1000).toFixed(1);
-                    const durMin = Math.round(opt.duration / 60);
-                    const timeStr = durMin >= 60 ? Math.floor(durMin / 60) + ' h ' + (durMin % 60) + ' min' : durMin + ' min';
-                    const icon = i === 0 ? '⚡' : opt.label.indexOf('toll') !== -1 ? '🛣️' : '🔀';
-                    const batteryStr = '~' + opt.batteryAtArrival + '% at arrival';
-                    const saveStr = opt.savePct > 0 ? ' • Save ' + opt.savePct + '% vs longest' : '';
-                    return `<div class="route-option-sidebar-row" data-index="${i}">
-                        <div class="route-opt-icon">${icon}</div>
-                        <div class="route-opt-body">
-                            <div class="route-opt-name">${opt.label}</div>
-                            <div class="route-opt-meta">${durMin} min • ${distKm} km</div>
-                            <div class="route-opt-benefits">${opt.benefits}</div>
-                            <div class="route-opt-battery">${batteryStr}${saveStr}</div>
-                        </div>
-                    </div>`;
-                };
                 listEl.innerHTML = options.map((opt, i) => {
                     const distKm = (opt.distance / 1000).toFixed(1);
                     const durMin = Math.round(opt.duration / 60);
@@ -2788,38 +2406,17 @@ out;`;
                     </div>`;
                 }).join('');
                 
-                if (sidebarList) {
-                    sidebarList.innerHTML = options.map((opt, i) => renderRow(opt, i)).join('');
-                    if (sidebarUseWrap) sidebarUseWrap.style.display = 'block';
-                }
-                
                 let selectedIndex = 0;
-                function selectRow(container, cls, idx) {
-                    if (!container) return;
-                    container.querySelectorAll(cls).forEach((r, i) => {
-                        r.classList.toggle('selected', i === idx);
-                    });
-                }
                 listEl.querySelectorAll('.route-option-row').forEach((row, i) => {
                     if (i === 0) row.classList.add('selected');
                     row.addEventListener('click', () => {
+                        listEl.querySelectorAll('.route-option-row').forEach(r => r.classList.remove('selected'));
+                        row.classList.add('selected');
                         selectedIndex = i;
-                        selectRow(listEl, '.route-option-row', i);
-                        if (sidebarList) selectRow(sidebarList, '.route-option-sidebar-row', i);
                         previewRouteOnMap(options[i].route, fromCoord, toCoord, waypoints);
                     });
                 });
-                if (sidebarList) {
-                    sidebarList.querySelectorAll('.route-option-sidebar-row').forEach((row, i) => {
-                        if (i === 0) row.classList.add('selected');
-                        row.addEventListener('click', () => {
-                            selectedIndex = i;
-                            selectRow(listEl, '.route-option-row', i);
-                            selectRow(sidebarList, '.route-option-sidebar-row', i);
-                            previewRouteOnMap(options[i].route, fromCoord, toCoord, waypoints);
-                        });
-                    });
-                }
+                
                 document.getElementById('routeOptionsOkBtn').onclick = () => {
                     const chosen = options[selectedIndex].route;
                     modal.classList.remove('show');
@@ -2827,22 +2424,9 @@ out;`;
                         applyChosenRoute(routeOptionsContext.fromCoord, routeOptionsContext.toCoord, routeOptionsContext.waypoints, chosen, routeOptionsContext.resolve);
                         routeOptionsContext = null;
                     }
-                    if (sidebarList) { sidebarList.innerHTML = ''; if (sidebarUseWrap) sidebarUseWrap.style.display = 'none'; }
                 };
-                const sidebarUseBtn = document.getElementById('sidebarUseRouteBtn');
-                if (sidebarUseBtn) {
-                    sidebarUseBtn.onclick = () => {
-                        const chosen = options[selectedIndex].route;
-                        if (routeOptionsContext) {
-                            applyChosenRoute(routeOptionsContext.fromCoord, routeOptionsContext.toCoord, routeOptionsContext.waypoints, chosen, routeOptionsContext.resolve);
-                            routeOptionsContext = null;
-                        }
-                        if (sidebarList) { sidebarList.innerHTML = ''; if (sidebarUseWrap) sidebarUseWrap.style.display = 'none'; }
-                    };
-                }
                 const closeRouteModal = (applyResolve) => {
                     modal.classList.remove('show');
-                    if (sidebarList) { sidebarList.innerHTML = ''; if (sidebarUseWrap) sidebarUseWrap.style.display = 'none'; }
                     if (map.getSource('route')) {
                         if (map.getLayer('route-layer-glow')) map.removeLayer('route-layer-glow');
                         if (map.getLayer('route-layer')) map.removeLayer('route-layer');
@@ -2855,11 +2439,7 @@ out;`;
                 modal.addEventListener('click', (e) => { if (e.target === modal) closeRouteModal(true); });
                 
                 previewRouteOnMap(options[0].route, fromCoord, toCoord, waypoints);
-                if (sidebarList && sidebarList.children.length) {
-                    modal.classList.remove('show');
-                } else {
-                    modal.classList.add('show');
-                }
+                modal.classList.add('show');
                 return;
             } catch (e) {
                 alert('Route error: ' + (e && e.message ? e.message : String(e)));
@@ -3021,17 +2601,6 @@ out;`;
                 const sufficient = parseFloat(distKm) <= realistic && endChargeAtArrival >= targetCharge;
                 document.getElementById('rangeSufficient').textContent = sufficient ? '✓ Yes' : '✗ Need charging';
                 document.getElementById('rangeSufficient').style.color = sufficient ? 'var(--accent-green)' : 'var(--accent-orange)';
-                
-                const etaDate = new Date(Date.now() + durMin * 60000);
-                const etaStr = etaDate.getHours().toString().padStart(2,'0') + ':' + etaDate.getMinutes().toString().padStart(2,'0');
-                const rpDist = document.getElementById('rightPanelDistance');
-                const rpEta = document.getElementById('rightPanelEta');
-                const rpDur = document.getElementById('rightPanelDuration');
-                const rpBat = document.getElementById('rightPanelBattery');
-                if (rpDist) rpDist.textContent = distKm + ' km';
-                if (rpEta) rpEta.textContent = etaStr;
-                if (rpDur) rpDur.textContent = durMin + ' min';
-                if (rpBat) rpBat.textContent = endChargeAtArrival + '%';
                 
                 update5PctMarker(parseFloat(distKm), simulatedCharge, batteryUsedPct, pctPerKm);
                 
@@ -3241,26 +2810,17 @@ out;`;
                         const stepDist = (step.distance || 0) / 1000;
                         if (doneDist + 0.1 < distToNext + stepDist) {
                             currentStreetName = (step.name || (step.names && step.names[0]) || '').trim();
-                            const roadEl = document.getElementById('bottomBarRoadName');
-                            if (roadEl) roadEl.textContent = currentStreetName || '--';
                             const distM = Math.round((distToNext + stepDist - doneDist) * 1000);
                             junctionShownThisStep = (distM < 400 && distM >= 0 && step.maneuver?.type !== 'depart');
                             const msg = (distM >= 1000 ? (distM/1000).toFixed(1) + ' kilometers' : distM + ' meters') + ', ' + (step.maneuver?.instruction || 'Continue');
                             const navStepKey = i + '-' + j + '-' + (junctionShownThisStep ? 1 : 0) + '-' + Math.floor(distM / 25);
                             if (navStepKey !== lastNavStepKey) {
                                 lastNavStepKey = navStepKey;
-                                const distStr = distM >= 1000 ? (distM/1000).toFixed(1) + ' km' : distM + ' m';
-                                document.getElementById('navDistance').textContent = 'In ' + distStr;
+                                document.getElementById('navDistance').textContent = distM >= 1000 ? 'In ' + (distM/1000).toFixed(1) + ' km' : 'In ' + distM + ' m';
                                 document.getElementById('navAction').textContent = step.maneuver?.instruction || 'Continue';
                                 const mIcon = document.getElementById('navManeuverIcon');
                                 if (mIcon) mIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier);
                                 document.getElementById('navInstruction').style.display = 'flex';
-                                const rpDist = document.getElementById('rightPanelTurnDist');
-                                const rpRoad = document.getElementById('rightPanelTurnRoad');
-                                const rpIcon = document.getElementById('rightPanelTurnIcon');
-                                if (rpDist) rpDist.textContent = distStr;
-                                if (rpRoad) rpRoad.textContent = (step.name || (step.names && step.names[0]) || step.maneuver?.instruction || '--').trim() || '--';
-                                if (rpIcon) rpIcon.innerHTML = getManeuverIconSVG(step.maneuver?.type, step.maneuver?.modifier) || '→';
                                 const junctionView = document.getElementById('junctionView');
                                 const junctionDrawing = document.getElementById('junctionDrawing');
                                 const junctionLabel = document.getElementById('junctionLabel');
@@ -3639,8 +3199,6 @@ out;`;
             
             const indicatedSpeed = (isRealNav && lastGpsPos && lastGpsPos.speed != null) ? Math.round(lastGpsPos.speed) : Math.round(simulatedSpeed * 1.02);
             document.getElementById('speedValue').textContent = indicatedSpeed;
-            const bottomSpeed = document.getElementById('bottomBarSpeedVal');
-            if (bottomSpeed) bottomSpeed.textContent = indicatedSpeed;
             document.getElementById('speedGaugesContainer').style.display = (isDemoMode || isRealNav) ? 'flex' : 'none';
             
             const totalDist = currentRoute.distance / 1000;
@@ -3717,22 +3275,7 @@ out;`;
                 map.setPaintProperty('route-layer-glow', 'line-opacity', 0.35 + 0.25 * (Math.sin(t) + 1) / 2);
             }
         }, 150);
-        setInterval(() => {
-            const rpTime = document.getElementById('rightPanelTime');
-            if (rpTime) {
-                const d = new Date();
-                const h = d.getHours(), m = d.getMinutes();
-                const am = h < 12 ? ' AM' : ' PM';
-                rpTime.textContent = (h % 12 || 12) + ':' + m.toString().padStart(2, '0') + am;
-            }
-            const rpTemp = document.getElementById('rightPanelTemp');
-            const rpCond = document.getElementById('rightPanelConditions');
-            if (rpTemp) rpTemp.textContent = (document.getElementById('tempSlicer')?.value || 20) + '°C';
-            if (rpCond) rpCond.textContent = 'Partly cloudy';
-        }, 1000);
-        
-        const planRouteBtn = document.getElementById('planRouteBtn');
-        if (planRouteBtn) planRouteBtn.addEventListener('click', planRoute);
+        document.getElementById('planRouteBtn').addEventListener('click', planRoute);
         document.getElementById('fromCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('fromInput'));
         document.getElementById('toCurrentLocBtn').addEventListener('click', () => setCurrentLocationToInput('toInput'));
         document.getElementById('addStopBtn').addEventListener('click', () => {
@@ -3764,8 +3307,6 @@ out;`;
         document.getElementById('tripSetupFab').addEventListener('click', openLeftPanel);
         document.getElementById('menuReopenBtn').addEventListener('click', openLeftPanel);
         document.getElementById('chargingReopenBtn').addEventListener('click', openLeftPanel);
-        const bottomBarControlsBtn = document.getElementById('bottomBarControlsBtn');
-        if (bottomBarControlsBtn) bottomBarControlsBtn.addEventListener('click', openLeftPanel);
         
         document.getElementById('navRecenter').addEventListener('click', () => {
             cameraFollowCar = true;
@@ -3815,12 +3356,6 @@ out;`;
             mainContent.classList.remove('navigating');
             window.speechSynthesis?.cancel();
             currentStreetName = '';
-            const roadEl = document.getElementById('bottomBarRoadName');
-            if (roadEl) roadEl.textContent = '--';
-            const rpDist = document.getElementById('rightPanelTurnDist');
-            const rpRoad = document.getElementById('rightPanelTurnRoad');
-            if (rpDist) rpDist.textContent = '--';
-            if (rpRoad) rpRoad.textContent = '--';
             if (carMarker) { carMarker.remove(); carMarker = null; }
             if (locationDotMarker) { locationDotMarker.remove(); locationDotMarker = null; }
             document.getElementById('speedGaugesContainer').style.display = 'none';
