@@ -421,14 +421,20 @@
             color: var(--text-secondary);
         }
         
-        /* Nav instruction – Google Maps / Waze style card, below header */
-        .nav-instruction {
+        /* Nav hints overlay – next step + junction/lane hint in one strip below header */
+        .nav-hints-overlay {
             position: absolute;
             top: 108px;
             left: 16px;
             right: 16px;
             z-index: 22;
-            max-width: 340px;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .nav-instruction {
+            max-width: 100%;
             background: #fff;
             border-radius: 12px;
             padding: 14px 18px;
@@ -453,22 +459,19 @@
         .nav-instruction .action { font-size: 1.05rem; font-weight: 600; margin-top: 2px; color: #202124; line-height: 1.35; }
         
         .junction-view {
-            position: absolute;
-            left: 50%;
-            bottom: 140px;
-            transform: translateX(-50%);
-            z-index: 30;
-            background: rgba(18,26,42,0.96);
-            border: 2px solid var(--border-glow);
-            border-radius: 16px;
-            padding: 16px 20px;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,255,0.2);
             display: none;
-            max-width: 92vw;
+            max-width: 100%;
+            background: linear-gradient(145deg, rgba(18,26,42,0.97), rgba(10,14,23,0.98));
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glow);
+            border-radius: 14px;
+            padding: 18px 22px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
         }
         .junction-view.visible { display: block; }
-        .junction-view .junction-drawing { width: 200px; height: 140px; margin: 0 auto 10px; display: block; }
-        .junction-view .junction-label { font-size: 1rem; font-weight: 600; color: var(--accent-blue); text-align: center; }
+        .junction-view .junction-drawing { width: 268px; height: 188px; margin: 0 auto 12px; display: block; }
+        .junction-view .junction-label { font-size: 1.12rem; font-weight: 600; color: var(--accent-blue); text-align: center; letter-spacing: 0.3px; text-shadow: 0 0 20px rgba(0,212,255,0.35); }
         
         /* Map nav controls: zoom, tilt, recenter - right middle */
         .map-nav-controls {
@@ -957,16 +960,18 @@
                         <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
                         <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
                     </div>
-                    <div class="nav-instruction" id="navInstruction" style="display: none;">
-                        <div class="maneuver-icon" id="navManeuverIcon"></div>
-                        <div class="nav-instruction-text">
-                            <div class="distance" id="navDistance" dir="auto">In 500 m</div>
-                            <div class="action" id="navAction" dir="auto">Turn right</div>
+                    <div class="nav-hints-overlay">
+                        <div class="nav-instruction" id="navInstruction" style="display: none;">
+                            <div class="maneuver-icon" id="navManeuverIcon"></div>
+                            <div class="nav-instruction-text">
+                                <div class="distance" id="navDistance" dir="auto">In 500 m</div>
+                                <div class="action" id="navAction" dir="auto">Turn right</div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="junction-view" id="junctionView">
-                        <div class="junction-drawing" id="junctionDrawing"></div>
-                        <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                        <div class="junction-view" id="junctionView">
+                            <div class="junction-drawing" id="junctionDrawing"></div>
+                            <div class="junction-label" id="junctionLabel" dir="auto"></div>
+                        </div>
                     </div>
                 </div>
                 
