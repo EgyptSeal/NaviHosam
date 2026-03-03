@@ -1222,10 +1222,8 @@
                     </div>
                     <div class="route-actions-row" id="routeActionsRow">
                         <button class="menu-reopen-btn" id="menuReopenBtn" title="Open menu">☰ Menu</button>
-                        <button class="menu-reopen-btn" id="chargingReopenBtn" title="Charging stations">🔌 Charging</button>
                     </div>
                     <div class="route-options" id="routeOptionsRow">
-                        <label class="route-option"><input type="checkbox" id="avoidTolls"> Avoid Tolls</label>
                         <button class="start-nav-btn" id="startNavBtn" disabled>▶ Start Real Navigation</button>
                     </div>
                     <div class="nav-hints-overlay" id="navHintsOverlay">
@@ -1258,7 +1256,7 @@
                         <div class="ib-heading">TRIP OVERVIEW</div>
                         <div class="ib-trip-row"><span class="ib-label">DISTANCE</span><span class="ib-val" id="ibDistance">-- km</span></div>
                         <div class="ib-trip-row"><span class="ib-label">ETA</span><span class="ib-val" id="ibEta">--</span></div>
-                        <div class="ib-trip-row"><span class="ib-label">DURATION</span><span class="ib-val" id="ibDuration">--</span></div>
+                        <div class="ib-trip-row"><span class="ib-label">REMAINING</span><span class="ib-val" id="ibDuration">--</span></div>
                         <div class="ib-trip-row"><span class="ib-label">CHARGE</span><span class="ib-val" id="ibFuel">--%</span></div>
                         <div class="ib-fuel-bar" aria-label="Charge"><div class="ib-fuel-fill" id="ibFuelFill" style="width: 18%;"></div></div>
                         <div class="ib-divider"></div>
@@ -1600,6 +1598,42 @@
             const m = date.getMinutes();
             const hour12 = (h % 12) || 12;
             return hour12.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + (h < 12 ? ' AM' : ' PM');
+        }
+        /** Remaining time in minutes: from route legs/steps (Mapbox includes speed limits & congestion). When navigating/demo uses progress to sum remaining step durations. */
+        function getRemainingTimeMin() {
+            if (!currentRoute) return null;
+            const totalDistM = currentRoute.distance || 0;
+            if (totalDistM <= 0) return null;
+            const legs = currentRoute.legs || [];
+            if (legs.length === 0) {
+                const durSec = currentRoute.duration;
+                return durSec != null ? Math.round(durSec / 60) : null;
+            }
+            if (isNavigating || isDemoMode) {
+                const doneDistM = totalDistM * simulatedProgress;
+                let cumDistM = 0;
+                let remainingSec = 0;
+                for (let i = 0; i < legs.length; i++) {
+                    const steps = legs[i].steps || [];
+                    for (let j = 0; j < steps.length; j++) {
+                        const step = steps[j];
+                        const stepDist = step.distance || 0;
+                        const stepDur = step.duration || 0;
+                        if (cumDistM >= doneDistM) {
+                            remainingSec += stepDur;
+                        } else if (cumDistM + stepDist > doneDistM) {
+                            const fracRemaining = 1 - (doneDistM - cumDistM) / stepDist;
+                            remainingSec += stepDur * fracRemaining;
+                            cumDistM += stepDist;
+                        } else {
+                            cumDistM += stepDist;
+                        }
+                    }
+                }
+                return Math.max(0, Math.round(remainingSec / 60));
+            }
+            const fullDurSec = currentRoute.duration;
+            return fullDurSec != null ? Math.round(fullDurSec / 60) : null;
         }
         function updatePoiList() {
             const listEl = document.getElementById('ibPoiList');
@@ -2161,7 +2195,7 @@
         // Get directions (with traffic + maxspeed)
         async function getDirections(from, to, waypoints = []) {
             const coords = [from, ...waypoints, to].map(c => `${c[0]},${c[1]}`).join(';');
-            const avoid = document.getElementById('avoidTolls').checked ? '&exclude=toll' : '';
+            const avoid = document.getElementById('avoidTolls')?.checked ? '&exclude=toll' : '';
             const profile = 'mapbox/driving-traffic';
             const url = `https://api.mapbox.com/directions/v5/${profile}/${coords}?geometries=geojson&overview=full&steps=true&annotations=maxspeed,congestion${avoid}&access_token=${MAPBOX_TOKEN}`;
             const res = await fetch(url);
@@ -3504,6 +3538,14 @@ out;`;
             }
             document.getElementById('endCharge').textContent = Math.round(Math.max(0, endChargeAtArrival));
             
+            const remainingMin = getRemainingTimeMin();
+            if (remainingMin != null) {
+                const ibDur = document.getElementById('ibDuration');
+                if (ibDur) ibDur.textContent = formatDuration(remainingMin);
+                const tripTimeEl = document.getElementById('tripTimeText');
+                if (tripTimeEl) tripTimeEl.textContent = formatDuration(remainingMin);
+            }
+            
             const now = new Date();
             document.getElementById('hudTime').textContent = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
             
@@ -3582,7 +3624,6 @@ out;`;
         function openLeftPanel() { leftPanel.classList.add('open'); }
         document.getElementById('tripSetupFab').addEventListener('click', openLeftPanel);
         document.getElementById('menuReopenBtn').addEventListener('click', openLeftPanel);
-        document.getElementById('chargingReopenBtn').addEventListener('click', openLeftPanel);
         
         document.getElementById('navRecenter').addEventListener('click', () => {
             cameraFollowCar = true;
